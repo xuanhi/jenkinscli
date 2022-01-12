@@ -1,6 +1,6 @@
 # jenkinscli
 
-基于gojenkins cobra viper 开发的Jenkins客户端
+基于gojenkins cobra viper 开发的Jenkins远程构建客户端
 
 #### 使用指南 
 
