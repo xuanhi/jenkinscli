@@ -8,7 +8,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var path string
+var (
+	path        string
+	mail        bool
+	mailsubject string
+	mailattach  string
+)
 
 // launchCmd represents the launch command
 var launchCmd = &cobra.Command{
@@ -37,6 +42,26 @@ var launchCmd = &cobra.Command{
 		}
 		fmt.Printf("build number %d with result: %v\n", build.GetBuildNumber(), build.GetResult())
 
+		//发邮件
+		fmt.Println("发邮件入口", mail)
+		if mail {
+			fmt.Println("⏳ send email...")
+			if mailsubject != "" {
+				jenkinsMod.MailSub = mailsubject
+			}
+			if mailattach != "" {
+				fmt.Println("赋值attach")
+				jenkinsMod.MailAttach = mailattach
+			}
+			err := jenkinsMod.SendMail(build.GetBuildNumber(), build.GetResult(), args[0])
+			if err != nil {
+				fmt.Println("邮件发送出错：", err)
+
+			}
+			println("邮件发送完成")
+
+		}
+		//下载工件
 		if path != "" && build.GetResult() == "SUCCESS" {
 			fmt.Println("⏳ downloading artifacts...")
 			err := jenkinsMod.DownloadArtifacts(args[0], build.GetBuildNumber(), path)
@@ -45,11 +70,15 @@ var launchCmd = &cobra.Command{
 				os.Exit(1)
 			}
 		}
+
 	},
 }
 
 func init() {
 	launchCmd.Flags().StringVarP(&path, "path", "p", "", "Specify a directory for downloading artifacts")
+	launchCmd.Flags().BoolVarP(&mail, "mail", "m", false, "Sending emails with default content")
+	launchCmd.Flags().StringVarP(&mailsubject, "subject", "s", "", "Set email title")
+	launchCmd.Flags().StringVarP(&mailattach, "attach", "a", "", "Adding attachments to emails")
 	rootCmd.AddCommand(launchCmd)
 
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/bndr/gojenkins"
 	"github.com/spf13/viper"
+	"gopkg.in/gomail.v2"
 )
 
 //jiekins 连接对象
@@ -17,6 +18,20 @@ type Jenkins struct {
 	JenkinsUser string
 	Token       string
 	Context     context.Context
+
+	//邮箱
+	MailSmpt   string
+	MailPort   int
+	MailUser   string
+	MailToken  string
+	MailFrom   string   //发送邮箱
+	MailTo     []string //主送
+	MailCc     []string //抄送
+	MailBcc    []string //密送
+	MailSub    string   //主题标题
+	MailBody   string   //邮箱内容
+	MailAttach string   //附件路径
+
 }
 
 //配置被集中在json文件中
@@ -27,6 +42,18 @@ type Config struct {
 	ConfigPath     string
 	ConfigFileName string
 	ConfigFullPath string
+
+	MailSmpt   string   `mapstructure:"MailSmpt"`
+	MailPort   int      `mapstructure:"MailPort"`
+	MailUser   string   `mapstructure:"MailUser"`
+	MailToken  string   `mapstructure:"MailToken"`
+	MailFrom   string   `mapstructure:"MailFrom"`   //发送邮箱
+	MailTo     []string `mapstructure:"MailTo"`     //主送
+	MailCc     []string `mapstructure:"MailCc"`     //抄送
+	MailBcc    []string `mapstructure:"MailBcc"`    //密送
+	MailSub    string   `mapstructure:"MailSub"`    //主题标题
+	MailBody   string   `mapstructure:"MailBody"`   //邮箱内容
+	MailAttach string   `mapstructure:"MailAttach"` //附件路径
 }
 
 //设置默认配置路径
@@ -50,7 +77,7 @@ func (j *Config) LoadConfig() (config Config, err error) {
 	}
 	err = viper.Unmarshal(&config)
 	//fmt.Println(viper.GetString("Server"))
-	//fmt.Printf("打印Config结构体%v\n", j)
+	fmt.Printf("打印Config结构体%v\n", config)
 
 	return
 }
@@ -69,6 +96,19 @@ func (j *Jenkins) Init(config Config) error {
 		j.Token,
 	)
 	_, err := j.Instance.Init(j.Context)
+
+	j.MailSmpt = config.MailSmpt
+	j.MailPort = config.MailPort
+	j.MailUser = config.MailUser
+	j.MailToken = config.MailToken
+	j.MailFrom = config.MailFrom
+	j.MailTo = config.MailTo
+	j.MailCc = config.MailCc
+	j.MailBcc = config.MailBcc
+	j.MailAttach = config.MailAttach
+	j.MailSub = config.MailSub
+	j.MailBody = config.MailBody
+
 	return err
 }
 
@@ -338,4 +378,25 @@ func (j *Jenkins) ShowNodes(showStatus string) ([]string, error) {
 
 	}
 	return hosts, nil
+}
+
+//发送邮件
+func (j *Jenkins) SendMail(number int64, result, name string) error {
+	m := gomail.NewMessage()
+	m.SetHeader("From", j.MailFrom)
+	m.SetHeader("To", j.MailTo...)
+	m.SetHeader("Cc", j.MailCc...)
+	m.SetHeader("Bcc", j.MailBcc...)
+	m.SetHeader("Subject", j.MailSub)
+	m.SetBody("text/html", fmt.Sprintf("流水线名称：%s 构建id：%d,构建结构：%s", name, number, result))
+	//	m.Attach(j.MailAttach)
+
+	fmt.Println("附件", j.MailAttach)
+
+	d := gomail.NewDialer(j.MailSmpt, j.MailPort, j.MailUser, j.MailToken)
+	fmt.Println(d)
+
+	err := d.DialAndSend(m)
+
+	return err
 }
