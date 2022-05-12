@@ -9,10 +9,14 @@ import (
 )
 
 var (
-	path        string
-	mail        bool
+	//下载工件路径
+	path string
+	//邮箱开关
+	mail bool
+	//邮箱标题
 	mailsubject string
-	mailattach  string
+	//邮箱附件
+	mailattach string
 )
 
 // launchCmd represents the launch command

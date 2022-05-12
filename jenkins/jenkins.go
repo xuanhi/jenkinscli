@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
 	"path/filepath"
 
 	"github.com/bndr/gojenkins"
@@ -43,17 +46,17 @@ type Config struct {
 	ConfigFileName string
 	ConfigFullPath string
 
-	MailSmpt   string   `mapstructure:"MailSmpt"`
-	MailPort   int      `mapstructure:"MailPort"`
-	MailUser   string   `mapstructure:"MailUser"`
-	MailToken  string   `mapstructure:"MailToken"`
-	MailFrom   string   `mapstructure:"MailFrom"`   //发送邮箱
-	MailTo     []string `mapstructure:"MailTo"`     //主送
-	MailCc     []string `mapstructure:"MailCc"`     //抄送
-	MailBcc    []string `mapstructure:"MailBcc"`    //密送
-	MailSub    string   `mapstructure:"MailSub"`    //主题标题
-	MailBody   string   `mapstructure:"MailBody"`   //邮箱内容
-	MailAttach string   `mapstructure:"MailAttach"` //附件路径
+	MailSmpt  string   `mapstructure:"MailSmpt"`
+	MailPort  int      `mapstructure:"MailPort"`
+	MailUser  string   `mapstructure:"MailUser"`
+	MailToken string   `mapstructure:"MailToken"`
+	MailFrom  string   `mapstructure:"MailFrom"` //发送邮箱
+	MailTo    []string `mapstructure:"MailTo"`   //主送
+	MailCc    []string `mapstructure:"MailCc"`   //抄送
+	MailBcc   []string `mapstructure:"MailBcc"`  //密送
+	MailSub   string   `mapstructure:"MailSub"`  //主题标题
+	//	MailBody   string   `mapstructure:"MailBody"`   //邮箱内容
+	MailAttach string `mapstructure:"MailAttach"` //附件路径
 }
 
 //设置默认配置路径
@@ -77,7 +80,7 @@ func (j *Config) LoadConfig() (config Config, err error) {
 	}
 	err = viper.Unmarshal(&config)
 	//fmt.Println(viper.GetString("Server"))
-	fmt.Printf("打印Config结构体%v\n", config)
+	//	fmt.Printf("打印Config结构体%v\n", config)
 
 	return
 }
@@ -107,7 +110,7 @@ func (j *Jenkins) Init(config Config) error {
 	j.MailBcc = config.MailBcc
 	j.MailAttach = config.MailAttach
 	j.MailSub = config.MailSub
-	j.MailBody = config.MailBody
+	//	j.MailBody = config.MailBody
 
 	return err
 }
@@ -163,16 +166,16 @@ func (j *Jenkins) ShowStatus(object string) {
 	switch object {
 	case "blue":
 		fmt.Printf("Status: ✅ Success\n")
-		break
+
 	case "red":
 		fmt.Printf("Status: ❌ Failed\n")
-		break
+
 	case "red_anime", "blue_anime", "yellow_anime", "gray_anime", "notbuild_anime":
 		fmt.Printf("Status: ⏳ In Progress\n")
-		break
+
 	case "notbuilt":
 		fmt.Printf("Status: 🚧 Not Build\n")
-		break
+
 	default:
 		if len(object) > 0 {
 			fmt.Printf("Status: %s\n", object)
@@ -389,8 +392,9 @@ func (j *Jenkins) SendMail(number int64, result, name string) error {
 	m.SetHeader("Bcc", j.MailBcc...)
 	m.SetHeader("Subject", j.MailSub)
 	m.SetBody("text/html", fmt.Sprintf("流水线名称：%s 构建id：%d,构建结构：%s", name, number, result))
-	//	m.Attach(j.MailAttach)
-
+	if j.MailAttach != "" {
+		m.Attach(j.MailAttach)
+	}
 	fmt.Println("附件", j.MailAttach)
 
 	d := gomail.NewDialer(j.MailSmpt, j.MailPort, j.MailUser, j.MailToken)
@@ -399,4 +403,39 @@ func (j *Jenkins) SendMail(number int64, result, name string) error {
 	err := d.DialAndSend(m)
 
 	return err
+}
+
+//自定义发送邮件
+func (j *Jenkins) SendMailCustom() error {
+	m := gomail.NewMessage()
+	m.SetHeader("From", j.MailFrom)
+	m.SetHeader("To", j.MailTo...)
+	m.SetHeader("Cc", j.MailCc...)
+	m.SetHeader("Bcc", j.MailBcc...)
+	m.SetHeader("Subject", j.MailSub)
+	m.SetBody("text/html", j.MailBody)
+	if j.MailAttach != "" {
+		m.Attach(j.MailAttach)
+	}
+	fmt.Println("附件", j.MailAttach)
+	d := gomail.NewDialer(j.MailSmpt, j.MailPort, j.MailUser, j.MailToken)
+	fmt.Println(d)
+
+	err := d.DialAndSend(m)
+
+	return err
+}
+
+//读取文件内容
+func (j *Jenkins) ReadFile(filepath string) []byte {
+	if _, err := os.Stat(filepath); err != nil {
+		fmt.Println("文件不存在或指定的不是文件")
+		panic(err)
+	}
+	content, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("File contents:%s", content)
+	return content
 }

@@ -56,7 +56,7 @@ func initConfig() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Printf("打印Config结构体2%v\n", config)
+	//	fmt.Printf("打印Config结构体2%v\n", config)
 	jenkinsMod = jenkins.Jenkins{}
 	err = jenkinsMod.Init(config) //初始化jenkins对象
 	if err != nil {
