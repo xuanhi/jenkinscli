@@ -399,7 +399,6 @@ func (j *Jenkins) SendMail(number int64, result, name string) error {
 	fmt.Println("附件", j.MailAttach)
 
 	d := gomail.NewDialer(j.MailSmpt, j.MailPort, j.MailUser, j.MailToken)
-	fmt.Println(d)
 
 	err := d.DialAndSend(m)
 
