@@ -391,7 +391,8 @@ func (j *Jenkins) SendMail(number int64, result, name string) error {
 	m.SetHeader("Cc", j.MailCc...)
 	m.SetHeader("Bcc", j.MailBcc...)
 	m.SetHeader("Subject", j.MailSub)
-	m.SetBody("text/html", fmt.Sprintf("流水线名称：%s 构建id：%d,构建结构：%s", name, number, result))
+	//	m.SetBody("text/html", fmt.Sprintf("流水线名称：%s 构建id：%d,构建结构：%s", name, number, result))
+	m.SetBody("text/html", Emailpost(number, name, result))
 	if j.MailAttach != "" {
 		m.Attach(j.MailAttach)
 	}
