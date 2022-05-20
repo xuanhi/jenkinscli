@@ -35,6 +35,8 @@ type Jenkins struct {
 	MailBody   string   //邮箱内容
 	MailAttach string   //附件路径
 
+	SshCs  []*SshC
+	SftpCs map[string]*SftpC
 }
 
 //配置被集中在json文件中
@@ -57,6 +59,11 @@ type Config struct {
 	MailSub   string   `mapstructure:"MailSub"`  //主题标题
 	//	MailBody   string   `mapstructure:"MailBody"`   //邮箱内容
 	MailAttach string `mapstructure:"MailAttach"` //附件路径
+
+	//Sshs
+	//  -{User:root,Password:123,Host:123,Port:22}
+	//  -{User:root,Password:123,Host:345,Port:22}
+	Sshs []SshC `mapstructure:"Sshs"` //ssh配置信息
 }
 
 //设置默认配置路径
