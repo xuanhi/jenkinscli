@@ -14,6 +14,10 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+const (
+	xx string = "------------------------------"
+)
+
 //保存了ssh连接的基本信息
 type SshC struct {
 	User     string `mapstructure:"User"`
@@ -86,12 +90,6 @@ func (f *SftpC) SftpClient() {
 
 //上传文件 指定文件路径到远程目录下
 func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) {
-	defer func() {
-		if err := recover(); err == nil {
-			xx := "------------------------------"
-			log.Printf("%sremote host：%s path：%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), localFilePath, xx)
-		}
-	}()
 	srcFile, err := os.Open(localFilePath)
 	if err != nil {
 		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
@@ -114,7 +112,7 @@ func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) {
 	}
 	dstFile.Write(ff)
 	//log.Println(f.SshClient.RemoteAddr().String(),localFilePath," copy file to remote server finished!")
-	log.Printf("remote host：%s path：%s copy file to remote server finished!", f.SshClient.RemoteAddr().String(), localFilePath)
+	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), localFilePath, xx)
 }
 
 //上传目录 上传本地目录下所有文件到远程目录下，不会将指定目录的父目录上传到远程目录下，只会上传内容
@@ -138,17 +136,11 @@ func (f *SftpC) UploadDirectory(localPath string, remotePath string) {
 		}
 	}
 	//log.Println(localPath + " copy directory to remote server finished!")
-	log.Printf("remote host：%s path：%s copy file to remote server finished!", f.SshClient.RemoteAddr().String(), localPath)
+	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), localPath, xx)
 }
 
 //下载文件 指定本地目录，指定远程文件下载目录和文件
 func (f *SftpC) DownLoadFile(localpath, remotepath string) {
-	defer func() {
-		if err := recover(); err == nil {
-			xx := "------------------------------"
-			log.Printf("%sremote host：%s path：%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), remotepath, xx)
-		}
-	}()
 	srcFile, err := f.Client.Open(remotepath)
 	if err != nil {
 		log.Printf("%s:下载文件有错误\n", f.SshClient.RemoteAddr().String())
@@ -167,18 +159,12 @@ func (f *SftpC) DownLoadFile(localpath, remotepath string) {
 		log.Fatal("文件写入失败", err)
 	}
 	//fmt.Println(remotepath, "文件下载成功")
-	log.Printf("remote host：%s path：%s copy file to remote server finished!", f.SshClient.RemoteAddr().String(), remotepath)
+	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), remotepath, xx)
 }
 
 //用于多线程下载文件 指定本地目录，指定远程文件下载目录和文件
 //下载的文件内容放在会以远程ip自动创建目录里
 func (f *SftpC) DownLoadFileP(localpath, remotepath string) {
-	defer func() {
-		if err := recover(); err == nil {
-			xx := "------------------------------"
-			log.Printf("%sremote host：%s path：%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), remotepath, xx)
-		}
-	}()
 	srcFile, err := f.Client.Open(remotepath)
 	if err != nil {
 		log.Printf("%s:下载文件有错误\n", f.SshClient.RemoteAddr().String())
@@ -203,7 +189,7 @@ func (f *SftpC) DownLoadFileP(localpath, remotepath string) {
 		log.Fatal("文件写入失败", err)
 	}
 	//fmt.Println(remotepath, "文件下载成功")
-	log.Printf("remote host:%s path：%s copy file to remote server finished!", f.SshClient.RemoteAddr().String(), remotepath)
+	log.Printf("%sremote host:%s path：%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), remotepath, xx)
 }
 
 //下载目录，将远端目录下载到本地目录下
