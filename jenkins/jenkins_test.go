@@ -1,7 +1,10 @@
 package jenkins
 
 import (
+	"fmt"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
 func TestReadFile(t *testing.T) {
@@ -29,4 +32,19 @@ func TestReadFileStat(t *testing.T) {
 	jenkins := Jenkins{}
 	jenkins.ReadFile(f)
 
+}
+
+func TestLoadConfig(t *testing.T) {
+	config := new(Config)
+	viper.AddConfigPath("/root/.config/jenkinscli")
+	viper.SetConfigName("config.yaml")
+	viper.SetConfigType("yaml")
+	viper.AutomaticEnv()
+	err := viper.ReadInConfig()
+	if err != nil {
+		return
+	}
+	viper.Unmarshal(&config)
+
+	fmt.Printf("%v", config)
 }

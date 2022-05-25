@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/bndr/gojenkins"
 	"github.com/spf13/viper"
@@ -37,6 +38,8 @@ type Jenkins struct {
 
 	SshCs  []*SshC
 	SftpCs map[string]*SftpC
+
+	Wg sync.WaitGroup
 }
 
 //配置被集中在json文件中
@@ -63,7 +66,7 @@ type Config struct {
 	//Sshs
 	//  -{User:root,Password:123,Host:123,Port:22}
 	//  -{User:root,Password:123,Host:345,Port:22}
-	Sshs []SshC `mapstructure:"Sshs"` //ssh配置信息
+	Sshs []*SshC `mapstructure:"Sshs"` //ssh配置信息
 }
 
 //设置默认配置路径
@@ -79,7 +82,7 @@ func (j *Config) SetConfigPath(path string) {
 func (j *Config) LoadConfig() (config Config, err error) {
 	viper.AddConfigPath(j.ConfigPath)
 	viper.SetConfigName(j.ConfigFileName)
-	viper.SetConfigType("json")
+	viper.SetConfigType("yaml")
 	viper.AutomaticEnv()
 	err = viper.ReadInConfig()
 	if err != nil {
@@ -118,6 +121,9 @@ func (j *Jenkins) Init(config Config) error {
 	j.MailAttach = config.MailAttach
 	j.MailSub = config.MailSub
 	//	j.MailBody = config.MailBody
+
+	j.SshCs = append(j.SshCs, config.Sshs...)
+	j.Wg = sync.WaitGroup{}
 
 	return err
 }
