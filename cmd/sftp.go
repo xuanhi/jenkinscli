@@ -52,7 +52,11 @@ var sftpUpFile = &cobra.Command{
 				defer jenkinsMod.Wg.Done()
 				sshclient := ssh.SshClient()
 				sftpc := jenkins.NewSftpC(sshclient)
-				sftpc.UploadFile(args[0], target)
+				err := sftpc.UploadFile(args[0], target)
+				if err != nil {
+					log.Println(err)
+					return
+				}
 			}(ssh)
 		}
 		jenkinsMod.Wg.Wait()
@@ -85,8 +89,14 @@ var sftpUpFileRegexp = &cobra.Command{
 			go func(ssh *jenkins.SshC) {
 				defer jenkinsMod.Wg.Done()
 				sshclient := ssh.SshClient()
+				defer sshclient.Close()
 				sftpc := jenkins.NewSftpC(sshclient)
-				sftpc.UploadFileRegep(args[0], target, upfilRegexp)
+				defer sftpc.Client.Close()
+				err := sftpc.UploadFileRegep(args[0], target, upfilRegexp)
+				if err != nil {
+					log.Println("read dir list fail ", err)
+					return
+				}
 			}(ssh)
 		}
 		jenkinsMod.Wg.Wait()
@@ -138,8 +148,14 @@ var sftpUpDir = &cobra.Command{
 			go func(ssh *jenkins.SshC) {
 				defer jenkinsMod.Wg.Done()
 				sshclient := ssh.SshClient()
+				defer sshclient.Close()
 				sftpc := jenkins.NewSftpC(sshclient)
-				sftpc.UploadDirectory(args[0], target)
+				sftpc.Client.Close()
+				err := sftpc.UploadDirectory(args[0], target)
+				if err != nil {
+					log.Println("read dir list fail ", err)
+					return
+				}
 			}(ssh)
 		}
 		jenkinsMod.Wg.Wait()
@@ -173,14 +189,20 @@ var sftpDownFile = &cobra.Command{
 				go func(ssh *jenkins.SshC) {
 					defer jenkinsMod.Wg.Done()
 					sshclient := ssh.SshClient()
+					defer sshclient.Close()
 					sftpc := jenkins.NewSftpC(sshclient)
+					defer sftpc.Client.Close()
 					localIPpath := pathx.Join(args[0], strings.Split(sftpc.SshClient.RemoteAddr().String(), ":")[0])
 					err := os.Mkdir(localIPpath, 0755)
 					if err != nil {
 						log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
 						log.Fatal(err)
 					}
-					sftpc.DownLoadFile(localIPpath, target)
+					err = sftpc.DownLoadFile(localIPpath, target)
+					if err != nil {
+						log.Println(err)
+						return
+					}
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
@@ -218,14 +240,20 @@ var sftpDownDir = &cobra.Command{
 				go func(ssh *jenkins.SshC) {
 					defer jenkinsMod.Wg.Done()
 					sshclient := ssh.SshClient()
+					defer sshclient.Close()
 					sftpc := jenkins.NewSftpC(sshclient)
+					defer sftpc.Client.Close()
 					localIPpath := pathx.Join(args[0], strings.Split(sftpc.SshClient.RemoteAddr().String(), ":")[0])
 					err := os.Mkdir(localIPpath, 0755)
 					if err != nil {
 						log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
 						log.Fatal(err)
 					}
-					sftpc.DownLoadDir(localIPpath, target)
+					err = sftpc.DownLoadDir(localIPpath, target)
+					if err != nil {
+						log.Println("remote read dir list fail ", err)
+						return
+					}
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()

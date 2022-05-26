@@ -59,3 +59,11 @@ func TestUploadFileRegep(t *testing.T) {
 func TestUploadFileRegepTest(t *testing.T) {
 	UploadFileRegepTest("/root/aaa", ".*jpg$")
 }
+
+func TestExecbash(t *testing.T) {
+	sshC.Execbash("ps aux | grep java")
+}
+
+func TestExecTask(t *testing.T) {
+	sftpC.ExecTask("/root/test.sh", "/root")
+}

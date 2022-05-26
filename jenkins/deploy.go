@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -25,6 +26,8 @@ type SshC struct {
 	Host     string `mapstructure:"Host"`
 	Port     string `mapstructure:"Port"`
 	Timeout  time.Duration
+	Cmd      string `mapstructure:"Cmd"`
+	Disbash  bool   `mapstructure:"Disbash"`
 }
 
 type SftpC struct {
@@ -64,6 +67,27 @@ func (s *SshC) SshClient() *ssh.Client {
 	return sshClient
 }
 
+//远程执行bash命令
+func (s *SshC) Execbash(cmd string) error {
+	client := s.SshClient()
+	defer client.Close()
+	session, err := client.NewSession()
+	if err != nil {
+		log.Println("Failed to create session: ", err)
+		return err
+	}
+	defer session.Close()
+	var b bytes.Buffer
+	session.Stdout = &b
+	if err := session.Run(fmt.Sprintf("/usr/bin/bash -c \"%s\"", cmd)); err != nil {
+		log.Println("Failed to run: " + err.Error())
+		return err
+	}
+	log.Printf("%sremote host:%s exec bash remote server finished!%s", xx, client.RemoteAddr().String(), xx)
+	fmt.Println(b.String())
+	return nil
+}
+
 //初始化SftpC对象 同时创建了sftpclient 客户端句柄
 func NewSftpC(sshClient *ssh.Client) *SftpC {
 	sftpClient, err := sftp.NewClient(sshClient)
@@ -88,39 +112,82 @@ func (f *SftpC) SftpClient() {
 	f.Client = sftpClient
 }
 
+//远程执行sh脚本
+func (f *SftpC) ExecTask(localFilePath, remoteFilePath string) error {
+	// err := os.Chmod(localFilePath, 0755)
+	// if err != nil {
+	// 	log.Println("添加执行权限遇到错误", err)
+	// }
+	err := f.UploadFile(localFilePath, remoteFilePath)
+	if err != nil {
+		log.Println("脚本传输错误")
+		return err
+	}
+	session, err := f.SshClient.NewSession()
+	if err != nil {
+		log.Println("创建ssh会话失败")
+		return err
+	}
+	defer session.Close()
+	remoteFileName := path.Base(localFilePath)
+	dstFile := path.Join(remoteFilePath, remoteFileName)
+	if err := session.Run(fmt.Sprintf("/usr/bin/sh %s", dstFile)); err != nil {
+		//log.Println("执行脚本失败")
+		log.Printf("%sremote host:%s exec bash remote server Failed!%s", xx, f.SshClient.RemoteAddr().String(), xx)
+		return err
+	}
+	log.Printf("%sremote host:%s exec bash remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), xx)
+	return nil
+
+}
+
 //上传文件 指定文件路径到远程目录下
-func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) {
+func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) error {
 	srcFile, err := os.Open(localFilePath)
 	if err != nil {
 		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
-		log.Fatal(err)
+		//	log.Println(err)
+		return err
 	}
 	defer srcFile.Close()
+	fs, err := os.Stat(localFilePath)
+	if err != nil {
+		log.Println("获取本地文件信息遇到错误：", err)
+	}
 	var remoteFileName = path.Base(localFilePath)
 	dstFile, err := f.Client.Create(path.Join(remoteFilePath, remoteFileName))
+	dstFile.Chmod(fs.Mode())
 	if err != nil {
 		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
 		fmt.Println("sftpClient.Create error : ", path.Join(remoteFilePath, remoteFileName))
-		log.Fatal(err)
+		//	log.Println(err)
+		return err
 	}
 	defer dstFile.Close()
 	ff, err := ioutil.ReadAll(srcFile)
 	if err != nil {
 		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
 		fmt.Println("ReadAll error : ", localFilePath)
-		log.Fatal(err)
+		//	log.Println(err)
+		return err
 	}
 	dstFile.Write(ff)
+
+	//fmt.Println("mod:", fs)
+	//f.Client.Chmod(path.Join(remoteFilePath, remoteFileName), fs.Mode())
+
 	//log.Println(f.SshClient.RemoteAddr().String(),localFilePath," copy file to remote server finished!")
 	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), localFilePath, xx)
+	return nil
 }
 
 //上传目录 上传本地目录下所有文件到远程目录下，不会将指定目录的父目录上传到远程目录下，只会上传内容
-func (f *SftpC) UploadDirectory(localPath string, remotePath string) {
+func (f *SftpC) UploadDirectory(localPath string, remotePath string) error {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
 		log.Printf("%s:上传目录有错误\n", f.SshClient.RemoteAddr().String())
-		log.Fatal("read dir list fail ", err)
+		//log.Fatal("read dir list fail ", err)
+		return err
 	}
 	//	fmt.Printf("___:%v", localFiles)
 	for _, backupDir := range localFiles {
@@ -137,29 +204,34 @@ func (f *SftpC) UploadDirectory(localPath string, remotePath string) {
 	}
 	//log.Println(localPath + " copy directory to remote server finished!")
 	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), localPath, xx)
+	return nil
 }
 
 //下载文件 指定本地目录，指定远程文件下载目录和文件
-func (f *SftpC) DownLoadFile(localpath, remotepath string) {
+func (f *SftpC) DownLoadFile(localpath, remotepath string) error {
 	srcFile, err := f.Client.Open(remotepath)
 	if err != nil {
 		log.Printf("%s:下载文件有错误\n", f.SshClient.RemoteAddr().String())
-		log.Fatal("文件读取失败", err)
+		//log.Fatal("文件读取失败", err)
+		return err
 	}
 	defer srcFile.Close()
 	localFilename := path.Base(remotepath)
 	dstFile, err := os.Create(path.Join(localpath, localFilename))
 	if err != nil {
-		log.Printf("%s:下载目录有错误\n", f.SshClient.RemoteAddr().String())
-		log.Fatalln("文件创建失败", err)
+		log.Printf("%s:下载目录有错误--文件创建失败\n", f.SshClient.RemoteAddr().String())
+		//log.Fatalln("文件创建失败", err)
+		return err
 	}
 	defer dstFile.Close()
 	if _, err := srcFile.WriteTo(dstFile); err != nil {
-		log.Printf("%s:下载文件有错误\n", f.SshClient.RemoteAddr().String())
-		log.Fatal("文件写入失败", err)
+		log.Printf("%s:下载文件有错误--文件写入有错误\n", f.SshClient.RemoteAddr().String())
+		//log.Fatal("文件写入失败", err)
+		return err
 	}
 	//fmt.Println(remotepath, "文件下载成功")
 	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), remotepath, xx)
+	return nil
 }
 
 //用于多线程下载文件 指定本地目录，指定远程文件下载目录和文件
@@ -193,11 +265,12 @@ func (f *SftpC) DownLoadFileP(localpath, remotepath string) {
 }
 
 //下载目录，将远端目录下载到本地目录下
-func (f *SftpC) DownLoadDir(localpath, remotepath string) {
+func (f *SftpC) DownLoadDir(localpath, remotepath string) error {
 	remotefiles, err := f.Client.ReadDir(remotepath)
 	if err != nil {
 		log.Printf("%s:下载目录有错误\n", f.SshClient.RemoteAddr().String())
-		log.Fatal("remote read dir list fail ", err)
+		//log.Fatal("remote read dir list fail ", err)
+		return err
 	}
 	for _, backupDir := range remotefiles {
 		remoteFilePath := path.Join(remotepath, backupDir.Name())
@@ -209,14 +282,16 @@ func (f *SftpC) DownLoadDir(localpath, remotepath string) {
 			f.DownLoadFile(path.Dir(localFilePath), remoteFilePath)
 		}
 	}
+	return nil
 }
 
 //给一个目录，用正则筛选目录下的文件然后上传到远程主机上
-func (f *SftpC) UploadFileRegep(localPath, remoteFilePath, reg string) {
+func (f *SftpC) UploadFileRegep(localPath, remoteFilePath, reg string) error {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
 		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
-		log.Fatal("read dir list fail ", err)
+		//log.Println("read dir list fail ", err)
+		return err
 	}
 	for _, backupDir := range localFiles {
 		if !backupDir.IsDir() {
@@ -228,6 +303,7 @@ func (f *SftpC) UploadFileRegep(localPath, remoteFilePath, reg string) {
 			}
 		}
 	}
+	return nil
 }
 
 //测试正则表达式的接口
