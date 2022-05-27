@@ -15,7 +15,7 @@ import (
 // getCmd represents the get command
 var getCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Get a resource Jenkins",
+	Short: "Get a resource Jenkins(用于获取远程Jenkins的资源信息)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
 			return errors.New("❌ requires at least one argument")
@@ -25,7 +25,7 @@ var getCmd = &cobra.Command{
 }
 var viewsInfo = &cobra.Command{
 	Use:   "views",
-	Short: "get all views",
+	Short: "get all views(显示所有视图)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jenkinsMod.ShowViews()
 		return nil
@@ -35,12 +35,12 @@ var viewsInfo = &cobra.Command{
 //build
 var build = &cobra.Command{
 	Use:   "build",
-	Short: "build related commands",
+	Short: "build related commands(构建相关的命令)",
 }
 
 var buildQueue = &cobra.Command{
 	Use:   "queue",
-	Short: "get build queue",
+	Short: "get build queue(获取当前Jenkins正在构建的队列)",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("⏳ Collecting build queue information...\n")
 		err := jenkinsMod.ShowBuildQueue()
@@ -54,11 +54,11 @@ var buildQueue = &cobra.Command{
 //job
 var job = &cobra.Command{
 	Use:   "job",
-	Short: "job related commands",
+	Short: "job related commands(job相关的命令)",
 }
 var jobAll = &cobra.Command{
 	Use:   "all",
-	Short: "get all jobs",
+	Short: "get all jobs(获取所有的任务)",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("⏳ Collecting all job(s) information...\n")
 		err := jenkinsMod.ShowAllJobs()
@@ -70,7 +70,7 @@ var jobAll = &cobra.Command{
 }
 var jobGetLastBuild = &cobra.Command{
 	Use:   "lastbuild",
-	Short: "get last build from a job",
+	Short: "get last build from a job(获取给定任务的最近一次的构建号)",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			fmt.Println("❌ requires at least one argument [JOB NAME]")
@@ -85,7 +85,7 @@ var jobGetLastBuild = &cobra.Command{
 }
 var jobGetLastSuccessfulBuild = &cobra.Command{
 	Use:   "lastsuccessfulbuild",
-	Short: "get last successful build from a job",
+	Short: "get last successful build from a job(获取给定任务的最近一次构建成功的构建号)",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			fmt.Println("❌ requires at least one argument [JOB NAME]")
@@ -100,7 +100,7 @@ var jobGetLastSuccessfulBuild = &cobra.Command{
 }
 var jobLastFailedBuild = &cobra.Command{
 	Use:   "lastfailedbuild",
-	Short: "get last failed build from a job",
+	Short: "get last failed build from a job(获取给定任务的最近一次构建失败的构建号)",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			fmt.Println("❌ requires at least one argument [JOB NAME]")
@@ -115,7 +115,7 @@ var jobLastFailedBuild = &cobra.Command{
 }
 var jobLastUnstableBuild = &cobra.Command{
 	Use:   "lastunstablebuild",
-	Short: "get last unstable build from a job",
+	Short: "get last unstable build from a job(获取给定任务的最近一次不可获得的构建号)",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			fmt.Println("❌ requires at least one argument [JOB NAME]")
@@ -130,7 +130,7 @@ var jobLastUnstableBuild = &cobra.Command{
 }
 var jobLastStableBuild = &cobra.Command{
 	Use:   "laststablebuild",
-	Short: "get last stable build from a job",
+	Short: "get last stable build from a job(获取给定任务的最近一次稳定的构建号)",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			fmt.Println("❌ requires at least one argument [JOB NAME]")
@@ -145,7 +145,7 @@ var jobLastStableBuild = &cobra.Command{
 }
 var jobAllBuildIds = &cobra.Command{
 	Use:   "allbuilds",
-	Short: "get all build of id from a job",
+	Short: "get all build of id from a job(将所有的构建号打印出来)",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			fmt.Println("❌ requires at least one argument [JOB NAME]")
@@ -162,12 +162,12 @@ var jobAllBuildIds = &cobra.Command{
 //node commands
 var node = &cobra.Command{
 	Use:   "nodes",
-	Short: "nodes related commands",
+	Short: "nodes related commands(节点相关命令)",
 }
 
 var nodesOffline = &cobra.Command{
 	Use:   "offline",
-	Short: "get nodes offline",
+	Short: "get nodes offline(获取离线的节点)",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("⏳ Collecting node(s) information...\n")
 		hosts, err := jenkinsMod.ShowNodes("offline")
@@ -185,7 +185,7 @@ var nodesOffline = &cobra.Command{
 
 var nodesOnline = &cobra.Command{
 	Use:   "online",
-	Short: "get nodes online",
+	Short: "get nodes online(获取在线的节点)",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("⏳ Collecting node(s) information...\n")
 		_, err := jenkinsMod.ShowNodes("online")

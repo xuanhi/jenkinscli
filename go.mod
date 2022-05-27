@@ -5,6 +5,7 @@ go 1.17
 require github.com/bndr/gojenkins v1.1.0
 
 require (
+	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/kr/fs v0.1.0 // indirect

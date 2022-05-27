@@ -19,7 +19,7 @@ var (
 // mailCmd represents the mail command
 var mailCmd = &cobra.Command{
 	Use:   "mail",
-	Short: "Ability to send custom content emails",
+	Short: "Ability to send custom content emails(发送邮件模块)",
 	Long: `Ability to send custom content emails,
 	You can specify the mail content file,specify the attachment, and the parameters are the message title
 	(if no title is specified the title in the configuration file will be used)`,
@@ -41,8 +41,8 @@ var mailCmd = &cobra.Command{
 }
 
 func init() {
-	mailCmd.Flags().StringVarP(&mailattach, "attach", "a", "", "Adding attachments to emails")
-	mailCmd.Flags().StringVarP(&mailbody, "body", "b", "", "Specify the path to the email content")
+	mailCmd.Flags().StringVarP(&mailattach, "attach", "a", "", "Adding attachments to emails(添加邮件附件)")
+	mailCmd.Flags().StringVarP(&mailbody, "body", "b", "", "Specify the path to the email content(指定一个文件路径作为邮件内容)")
 	//	mailCmd.Flags().StringVarP(&mailsubject, "subject", "s", "", "Set email title")
 	rootCmd.AddCommand(mailCmd)
 

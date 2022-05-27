@@ -22,9 +22,10 @@ var (
 // launchCmd represents the launch command
 var launchCmd = &cobra.Command{
 	Use:   "launch",
-	Short: "Start a Jenkins resource and you can trigger an artifact download",
-	Long: `Starts a Jenkins resource and can trigger an artifact download; 
-	        the default is not to trigger an artifact download if the download path is specified`,
+	Short: "Start a Jenkins resource and you can trigger an artifact download(启动Jenkins用于java可以下载工件)",
+	Long: `	Starts a Jenkins resource and can trigger an artifact download; 
+the default is not to trigger an artifact download if the download path is specified;
+启动jenkins流水线,第一个参数为流水线名,如果是java还可以构建完成后下载工件到-p指定的本地目录`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("launch called")
 		if len(args) != 1 {
@@ -79,10 +80,10 @@ var launchCmd = &cobra.Command{
 }
 
 func init() {
-	launchCmd.Flags().StringVarP(&path, "path", "p", "", "Specify a directory for downloading artifacts")
-	launchCmd.Flags().BoolVarP(&mail, "mail", "m", false, "Sending emails with default content")
-	launchCmd.Flags().StringVarP(&mailsubject, "subject", "s", "", "Set email title")
-	launchCmd.Flags().StringVarP(&mailattach, "attach", "a", "", "Adding attachments to emails")
+	launchCmd.Flags().StringVarP(&path, "path", "p", "", "Specify a directory for downloading artifacts(指定下载工件的路径(目录))")
+	launchCmd.Flags().BoolVarP(&mail, "mail", "m", false, "Sending emails with default content(发送邮件开关,默认为fase,需要指定才能发送邮件)")
+	launchCmd.Flags().StringVarP(&mailsubject, "subject", "s", "", "Set email title(设置邮箱标题)")
+	launchCmd.Flags().StringVarP(&mailattach, "attach", "a", "", "Adding attachments to emails(给邮箱添加附件,指定路径)")
 	rootCmd.AddCommand(launchCmd)
 
 }

@@ -1,8 +1,10 @@
 package jenkins
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -21,13 +23,14 @@ const (
 
 //保存了ssh连接的基本信息
 type SshC struct {
-	User     string `mapstructure:"User"`
-	Password string `mapstructure:"Password"`
-	Host     string `mapstructure:"Host"`
-	Port     string `mapstructure:"Port"`
-	Timeout  time.Duration
-	Cmd      string `mapstructure:"Cmd"`
-	Disbash  bool   `mapstructure:"Disbash"`
+	User       string        `mapstructure:"User"`
+	Password   string        `mapstructure:"Password"`
+	Host       string        `mapstructure:"Host"`
+	Port       string        `mapstructure:"Port"`
+	Timeout    time.Duration `mapstructure:"Timeout"`
+	Cmd        string        `mapstructure:"Cmd"`
+	Disbash    bool          `mapstructure:"Disbash"`
+	Privatekey string        `mapstructure:"Privatekey"`
 }
 
 type SftpC struct {
@@ -49,8 +52,23 @@ func NewSshC(user, password, host, port string) *SshC {
 	}
 }
 
+//初始化SshC对象
+func NewSshC2(host, port, user string) *SshC {
+	return &SshC{
+		Host: host,
+		Port: port,
+		User: user,
+	}
+}
+
 //创建一个sshclient客户端句柄
 func (s *SshC) SshClient() *ssh.Client {
+	if s.Timeout == 0 {
+		s.Timeout = 10 * time.Second
+	}
+	if s.Port == "" {
+		s.Port = "22"
+	}
 	sshConfig := &ssh.ClientConfig{
 		User: s.User,
 		Auth: []ssh.AuthMethod{
@@ -62,14 +80,67 @@ func (s *SshC) SshClient() *ssh.Client {
 	}
 	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.Host, s.Port), sshConfig)
 	if err != nil {
-		log.Fatalln("sshclient", err.Error())
+		log.Fatalf("unable to connect: %v", err)
 	}
 	return sshClient
 }
 
+//通过密钥创建一个sshclient客户端句柄
+func (s *SshC) SshClientRsa() *ssh.Client {
+	if s.Timeout == 0 {
+		s.Timeout = 10 * time.Second
+	}
+	if s.Port == "" {
+		s.Port = "22"
+	}
+	if s.Privatekey == "" {
+		dirname, err := os.UserHomeDir() //获取家目录
+		if err != nil {
+			log.Fatalf("unable to read UserHomeDir: %v", err)
+		}
+		s.Privatekey = dirname + "/.ssh/id_rsa"
+	}
+	//var hostKey ssh.PublicKey
+
+	key, err := ioutil.ReadFile(s.Privatekey)
+	if err != nil {
+		log.Fatalf("unable to read private key: %v", err)
+	}
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		log.Fatalf("unable to parse private key: %v", err)
+	}
+
+	config := &ssh.ClientConfig{
+		User: s.User,
+		Auth: []ssh.AuthMethod{
+			// Use the PublicKeys method for remote authentication.
+			ssh.PublicKeys(signer),
+		},
+		//	HostKeyCallback: ssh.FixedHostKey(hostKey),
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         s.Timeout,
+	}
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.Host, s.Port), config)
+	if err != nil {
+		log.Fatalf("unable to connect: %v", err)
+	}
+	return client
+}
+
+//SshClient 和SshClientRsa 两个方法合为一个
+func (s *SshC) SshClientRsaAndSshClient() *ssh.Client {
+	if s.Password == "" {
+		return s.SshClientRsa()
+	}
+	return s.SshClient()
+
+}
+
 //远程执行bash命令
 func (s *SshC) Execbash(cmd string) error {
-	client := s.SshClient()
+	//client := s.SshClient()
+	client := s.SshClientRsaAndSshClient()
 	defer client.Close()
 	session, err := client.NewSession()
 	if err != nil {
@@ -172,6 +243,57 @@ func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) error {
 		return err
 	}
 	dstFile.Write(ff)
+
+	//fmt.Println("mod:", fs)
+	//f.Client.Chmod(path.Join(remoteFilePath, remoteFileName), fs.Mode())
+
+	//log.Println(f.SshClient.RemoteAddr().String(),localFilePath," copy file to remote server finished!")
+	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), localFilePath, xx)
+	return nil
+}
+
+//使用缓存上传文件 指定文件路径到远程目录下
+func (f *SftpC) UploadFilebuf(localFilePath, remoteFilePath string) error {
+	srcFile, err := os.Open(localFilePath)
+	if err != nil {
+		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
+		//	log.Println(err)
+		return err
+	}
+	defer srcFile.Close()
+	fs, err := os.Stat(localFilePath)
+	if err != nil {
+		log.Println("获取本地文件信息遇到错误：", err)
+	}
+	var remoteFileName = path.Base(localFilePath)
+	dstFile, err := f.Client.Create(path.Join(remoteFilePath, remoteFileName))
+	dstFile.Chmod(fs.Mode())
+	if err != nil {
+		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
+		fmt.Println("sftpClient.Create error : ", path.Join(remoteFilePath, remoteFileName))
+		//	log.Println(err)
+		return err
+	}
+	defer dstFile.Close()
+	//ff, err := ioutil.ReadAll(srcFile)
+	buf := bufio.NewReader(srcFile)
+	b := make([]byte, 4096)
+	for {
+		n, err := buf.Read(b)
+		if err != nil || err == io.EOF {
+			break
+		}
+		dstFile.Write(b[:n])
+	}
+	//	fmt.Printf("\r%s", strings.Repeat(" ", 35))
+	//	fmt.Printf("\rUploadloading... %s complete", humanize.Bytes(size))
+	// if err != nil {
+	// 	log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
+	// 	fmt.Println("ReadAll error : ", localFilePath)
+	// 	//	log.Println(err)
+	// 	return err
+	// }
+	//dstFile.Write(ff)
 
 	//fmt.Println("mod:", fs)
 	//f.Client.Chmod(path.Join(remoteFilePath, remoteFileName), fs.Mode())

@@ -9,8 +9,10 @@ import (
 	"testing"
 )
 
-var sshC = NewSshC("root", "ADMIN12345", "192.168.100.34", "22")
-var sshclient = sshC.SshClient()
+// var sshC = NewSshC("root", "ADMIN12345", "192.168.100.34", "22")
+// var sshclient = sshC.SshClient()
+var sshC = NewSshC2("192.168.100.34", "22", "root")
+var sshclient = sshC.SshClientRsa()
 var sftpC = NewSftpC(sshclient)
 var localpath string = "/root/aaa"
 
@@ -22,7 +24,10 @@ func TestUploadFile(t *testing.T) {
 		}
 	}()
 	fmt.Println(sftpC.Host)
-	sftpC.UploadFile("/root/1.jpg", "/root")
+	sftpC.UploadFile("/root/asitcn-module-system-2.4.6.jar", "/root/test")
+}
+func TestUploadFilebuf(t *testing.T) {
+	sftpC.UploadFilebuf("/root/asitcn-module-system-2.4.6.jar", "/root/test")
 }
 
 func TestUploadDirectory(t *testing.T) {

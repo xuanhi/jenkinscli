@@ -15,7 +15,7 @@ import (
 // downloadCmd represents the download command
 var downloadCmd = &cobra.Command{
 	Use:   "download",
-	Short: "download related commands",
+	Short: "download related commands(手动下载工件,指定3个参数分别是:流水线名,构建号,工件保存的路径)",
 }
 var artifactsCmd = &cobra.Command{
 	Use:   "artifacts",

@@ -40,8 +40,8 @@ var immunity bool
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "", "", "Path to config file")
-	rootCmd.PersistentFlags().BoolVarP(&immunity, "immunity", "I", false, "Used to prevent the jenkins server from exiting with an initialized error")
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "", "", "Path to config file(指定配置文件路径)")
+	rootCmd.PersistentFlags().BoolVarP(&immunity, "immunity", "I", false, "Used to prevent the jenkins server from exiting with an initialized error(免疫Jenkins初始化保存导致的程序退出)")
 }
 
 //加载配置文件

@@ -16,14 +16,14 @@ import (
 // sshCmd represents the ssh command
 var sshCmd = &cobra.Command{
 	Use:   "ssh",
-	Short: "remote exec bash",
+	Short: "remote exec bash(集成ssh相关功能)",
 	Long:  `ssh远程工具`,
 }
 
 //远程执行bash命令
 var sshBash = &cobra.Command{
 	Use:   "bash",
-	Short: "remote exec bash",
+	Short: "remote exec bash(远程执行bash指令)",
 	Long:  `ssh远程工具`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
@@ -60,7 +60,7 @@ var sshBash = &cobra.Command{
 
 var sshTask = &cobra.Command{
 	Use:   "task",
-	Short: "remote exec bash script",
+	Short: "remote exec bash script(远程执行shell脚本,会将本地脚本先上传再执行脚本)",
 	Long:  `ssh远程执行脚本`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
@@ -75,7 +75,8 @@ var sshTask = &cobra.Command{
 			jenkinsMod.Wg.Add(1)
 			go func(ssh *jenkins.SshC) {
 				defer jenkinsMod.Wg.Done()
-				sshclient := ssh.SshClient()
+				//sshclient := ssh.SshClient()
+				sshclient := ssh.SshClientRsaAndSshClient()
 				sftpc := jenkins.NewSftpC(sshclient)
 				err := sftpc.ExecTask(args[0], target)
 				if err != nil {
@@ -90,7 +91,7 @@ var sshTask = &cobra.Command{
 }
 
 func init() {
-	sshCmd.PersistentFlags().StringVarP(&target, "target", "t", "", "Specify a target path or remote path")
+	sshCmd.PersistentFlags().StringVarP(&target, "target", "t", "", "Specify a target path or remote path(指定远程目录)")
 	rootCmd.AddCommand(sshCmd)
 	sshCmd.AddCommand(sshBash)
 	sshCmd.AddCommand(sshTask)

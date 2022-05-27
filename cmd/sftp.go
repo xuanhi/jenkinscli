@@ -22,20 +22,27 @@ var (
 	upfilRegexp string
 )
 
+// 获取sftpc 客户端
+func GetsftpC(ssh *jenkins.SshC) *jenkins.SftpC {
+	sshclient := ssh.SshClient()
+	defer sshclient.Close()
+	sftpc := jenkins.NewSftpC(sshclient)
+	defer sftpc.Client.Close()
+	return sftpc
+}
+
 // sftpCmd represents the sftp command
 var sftpCmd = &cobra.Command{
 	Use:   "sftp",
-	Short: "Upload or download files or folders to a remote host",
-	Long: `Upload or download files or folders to a remote host
-	       向远程主机上传或下载文件或文件夹`,
+	Short: "Upload or download files or folders to a remote host(集成了sftp相关功能)",
+	Long:  `Upload or download files or folders to a remote host 向远程主机上传或下载文件或文件夹`,
 }
 
 //上传文件数据
 var sftpUpFile = &cobra.Command{
 	Use:   "upfile",
-	Short: "Upload files to a remote host",
-	Long: `Upload files to a remote host
-	       向远程主机上传文件，-t是远程路径,参数为本地路径`,
+	Short: "Upload files to a remote host(上传文件)",
+	Long:  `Upload files to a remote host  向远程主机上传文件，-t是远程路径,参数为本地路径`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			fmt.Println("❌ requires at one arguments: Local Path")
@@ -50,8 +57,11 @@ var sftpUpFile = &cobra.Command{
 			jenkinsMod.Wg.Add(1)
 			go func(ssh *jenkins.SshC) {
 				defer jenkinsMod.Wg.Done()
-				sshclient := ssh.SshClient()
+				//sshclient := ssh.SshClient()
+				sshclient := ssh.SshClientRsaAndSshClient()
+				defer sshclient.Close()
 				sftpc := jenkins.NewSftpC(sshclient)
+				defer sftpc.Client.Close()
 				err := sftpc.UploadFile(args[0], target)
 				if err != nil {
 					log.Println(err)
@@ -67,7 +77,7 @@ var sftpUpFile = &cobra.Command{
 //上传多个文件数据，使用正则表达式匹配
 var sftpUpFileRegexp = &cobra.Command{
 	Use:   "upfilereg",
-	Short: "Upload files to a remote host use Regexp",
+	Short: "Upload files to a remote host use Regexp(上传多个文件，需要写正则表达式匹配)",
 	Long: `Upload files to a remote host
 	       用正则表达式RE2语法向远程主机上传多个文件,-t是远程路径,参数为本地路径`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -88,7 +98,8 @@ var sftpUpFileRegexp = &cobra.Command{
 			jenkinsMod.Wg.Add(1)
 			go func(ssh *jenkins.SshC) {
 				defer jenkinsMod.Wg.Done()
-				sshclient := ssh.SshClient()
+				//sshclient := ssh.SshClient()
+				sshclient := ssh.SshClientRsaAndSshClient()
 				defer sshclient.Close()
 				sftpc := jenkins.NewSftpC(sshclient)
 				defer sftpc.Client.Close()
@@ -127,9 +138,8 @@ var Regexptest = &cobra.Command{
 //上传目录数据
 var sftpUpDir = &cobra.Command{
 	Use:   "updir",
-	Short: "Upload  folders to a remote host",
-	Long: `Upload  folders to a remote host
-	       向远程主机上传文件夹，-t是远程路径,参数为本地路径`,
+	Short: "Upload  folders to a remote host(上传文件夹)",
+	Long:  `Upload  folders to a remote host  向远程主机上传文件夹，-t是远程路径,参数为本地路径`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			fmt.Println("❌ requires at one arguments: Local Path")
@@ -147,10 +157,11 @@ var sftpUpDir = &cobra.Command{
 			jenkinsMod.Wg.Add(1)
 			go func(ssh *jenkins.SshC) {
 				defer jenkinsMod.Wg.Done()
-				sshclient := ssh.SshClient()
+				//sshclient := ssh.SshClient()
+				sshclient := ssh.SshClientRsaAndSshClient()
 				defer sshclient.Close()
 				sftpc := jenkins.NewSftpC(sshclient)
-				sftpc.Client.Close()
+				defer sftpc.Client.Close()
 				err := sftpc.UploadDirectory(args[0], target)
 				if err != nil {
 					log.Println("read dir list fail ", err)
@@ -166,9 +177,8 @@ var sftpUpDir = &cobra.Command{
 //下载文件数据
 var sftpDownFile = &cobra.Command{
 	Use:   "downfile",
-	Short: "download files to a remote host",
-	Long: `download files to a remote host
-	       向远程主机下载文件，-t是远程路径,参数为本地路径`,
+	Short: "download files to a remote host(下载文件)",
+	Long:  `download files to a remote host  向远程主机下载文件，-t是远程路径,参数为本地路径`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			fmt.Println("❌ requires at one arguments: Local Path")
@@ -188,15 +198,20 @@ var sftpDownFile = &cobra.Command{
 				jenkinsMod.Wg.Add(1)
 				go func(ssh *jenkins.SshC) {
 					defer jenkinsMod.Wg.Done()
-					sshclient := ssh.SshClient()
+					//sshclient := ssh.SshClient()
+					sshclient := ssh.SshClientRsaAndSshClient()
 					defer sshclient.Close()
 					sftpc := jenkins.NewSftpC(sshclient)
 					defer sftpc.Client.Close()
 					localIPpath := pathx.Join(args[0], strings.Split(sftpc.SshClient.RemoteAddr().String(), ":")[0])
-					err := os.Mkdir(localIPpath, 0755)
+					//如果ip目录存在就不创建
+					_, err := os.Stat(localIPpath)
 					if err != nil {
-						log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
-						log.Fatal(err)
+						err := os.Mkdir(localIPpath, 0755)
+						if err != nil {
+							log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
+							log.Fatal(err)
+						}
 					}
 					err = sftpc.DownLoadFile(localIPpath, target)
 					if err != nil {
@@ -217,9 +232,8 @@ var sftpDownFile = &cobra.Command{
 //下载目录数据
 var sftpDownDir = &cobra.Command{
 	Use:   "downdir",
-	Short: "download folders to a remote host",
-	Long: `download folders to a remote host
-	       向远程主机下载文件夹，-t是远程路径,参数为本地路径`,
+	Short: "download folders to a remote host(下载文件夹)",
+	Long:  `download folders to a remote host  向远程主机下载文件夹，-t是远程路径,参数为本地路径`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			fmt.Println("❌ requires at one arguments: Local Path")
@@ -239,15 +253,20 @@ var sftpDownDir = &cobra.Command{
 				jenkinsMod.Wg.Add(1)
 				go func(ssh *jenkins.SshC) {
 					defer jenkinsMod.Wg.Done()
-					sshclient := ssh.SshClient()
+					//sshclient := ssh.SshClient()
+					sshclient := ssh.SshClientRsaAndSshClient()
 					defer sshclient.Close()
 					sftpc := jenkins.NewSftpC(sshclient)
 					defer sftpc.Client.Close()
 					localIPpath := pathx.Join(args[0], strings.Split(sftpc.SshClient.RemoteAddr().String(), ":")[0])
-					err := os.Mkdir(localIPpath, 0755)
+					//如果ip目录存在就不创建
+					_, err := os.Stat(localIPpath)
 					if err != nil {
-						log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
-						log.Fatal(err)
+						err := os.Mkdir(localIPpath, 0755)
+						if err != nil {
+							log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
+							log.Fatal(err)
+						}
 					}
 					err = sftpc.DownLoadDir(localIPpath, target)
 					if err != nil {
@@ -266,8 +285,9 @@ var sftpDownDir = &cobra.Command{
 }
 
 func init() {
-	sftpCmd.PersistentFlags().StringVarP(&target, "target", "t", "", "Specify a target path or remote path")
-	sftpCmd.PersistentFlags().StringVarP(&upfilRegexp, "regexp", "R", "", "Specify a Regexp expressions  with Use RE2 syntax")
+	sftpCmd.PersistentFlags().StringVarP(&target, "target", "t", "", "Specify a target path or remote path(指定远程主机的目录)")
+	sftpUpFileRegexp.Flags().StringVarP(&upfilRegexp, "regexp", "R", "", "Specify a Regexp expressions  with Use RE2 syntax(指定正则表达式)")
+	Regexptest.Flags().StringVarP(&upfilRegexp, "regexp", "R", "", "Specify a Regexp expressions  with Use RE2 syntax(指定正则表达式)")
 
 	rootCmd.AddCommand(sftpCmd)
 	sftpCmd.AddCommand(sftpUpFile)

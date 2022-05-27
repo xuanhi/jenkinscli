@@ -16,7 +16,7 @@ import (
 // enableCmd represents the enable command
 var enableCmd = &cobra.Command{
 	Use:   "enable",
-	Short: "Enable a resource in Jenkins",
+	Short: "Enable a resource in Jenkins(启动Jenkins流水线,相对于launch功能少很多且实现方法不一样)",
 }
 
 var enableJobCmd = &cobra.Command{
