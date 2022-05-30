@@ -344,6 +344,73 @@ jenkinscli ssh task
 
 -t 指定远程执行脚本的工作目录 
 
+### 3.3使用Extend管理主机群
+
+Extend是原来Sshs主机群的一个加强版，你可以配置多个主机群，在命令行指定使用哪个主机群，适用于sftp和ssh模块，如果不知道这个选项，默认使用Sshs主机群
+
+#### 3.3.1 编写配置文件
+
+```yaml
+Extend:
+- centos:
+  - {User: root,Host: 192.168.100.34}
+  - {User: root,Password: admin12345,Host: 192.168.100.31,Port: 22}
+- openeul:
+  - {User: root,Password: admin12345,Host: 192.168.100.31,Port: 22}
+  - {User: root,Password: admin12345,Host: 192.168.100.32,Port: 22}
+
+```
+
+字段为Extend
+
+你可以自定义多个主机群，在需要时使用它，比如，这里定义了两个主机群，centos和openeul (名字可以随意取)
+
+使用时使用参数 -H centos 表示作用域centos下的主机群,不指定-H 也就时使用默认的Sshs字段下的主机群。
+
+#### 3.3.2 示例
+
+使用自定义centos主机群:
+
+```shell
+[root@localhost jenkinscli]# ./jenkinscli ssh -H centos bash "date"
+2022/05/30 16:00:45  ------------------- remote host:192.168.100.34:22 exec bash remote server finished!
+Mon May 30 16:00:45 CST 2022
+
+2022/05/30 16:00:45  ------------------- remote host:192.168.100.31:22 exec bash remote server finished!
+Mon May 30 16:00:45 CST 2022
+```
+
+同时sftp和ssh模块都是一样的原理，不指定-H就表示使用默认的Sshs字段的主机群。
+
+#### 3.3.3 完整配置文件示例参考
+
+```yaml
+Server: http://127.0.0.1:8080/
+JenkinsUser: admin
+Token: 113a8b8
+MailSmpt: smtp.qq.com
+MailPort: 25
+MailUser: 123456789@qq.com
+MailToken: lrfa
+MailFrom: 123456789@qq.com
+MailTo:
+- 987654321@qq.com
+MailSub: pc-system Test!!!
+Sshs:
+- {User: root,Host: 192.168.100.34}
+- {User: root,Password: admin12345,Host: 192.168.100.31,Port: 22}
+- {User: root,Password: admin12345,Host: 192.168.100.32,Port: 22}
+Extend:
+- centos:
+  - {User: root,Host: 192.168.100.34}
+  - {User: root,Password: admin12345,Host: 192.168.100.31,Port: 22}
+- openeul:
+  - {User: root,Password: admin12345,Host: 192.168.100.31,Port: 22}
+  - {User: root,Password: admin12345,Host: 192.168.100.32,Port: 22}
+```
+
+
+
 ## 4.常见问题
 
 1.如果在配置文件没有指定Jenkins登录的信息会导致jengkins初始化失败从而退出程序。通常在单独使用某个子命令时遇到，比如使用sftp 、ssh、email等。**我们可以通过-I来忽略Jenkins初始化报错导致的程序退出。这样你就可以单独使用其它子命令了。**
