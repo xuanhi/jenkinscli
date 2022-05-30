@@ -45,6 +45,5 @@ func TestLoadConfig(t *testing.T) {
 		return
 	}
 	viper.Unmarshal(&config)
-
 	fmt.Printf("%v", config)
 }

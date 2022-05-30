@@ -39,7 +39,8 @@ type Jenkins struct {
 	SshCs  []*SshC
 	SftpCs map[string]*SftpC
 
-	Wg sync.WaitGroup
+	Wg     sync.WaitGroup
+	Extend map[string][]*SshC
 }
 
 //配置被集中在json文件中
@@ -66,7 +67,8 @@ type Config struct {
 	//Sshs
 	//  -{User:root,Password:123,Host:123,Port:22}
 	//  -{User:root,Password:123,Host:345,Port:22}
-	Sshs []*SshC `mapstructure:"Sshs"` //ssh配置信息
+	Sshs   []*SshC            `mapstructure:"Sshs"`   //ssh配置信息
+	Extend map[string][]*SshC `mapstructure:"Extend"` //主机管理器
 }
 
 //设置默认配置路径
@@ -124,7 +126,7 @@ func (j *Jenkins) Init(config Config) error {
 
 	j.SshCs = append(j.SshCs, config.Sshs...)
 	j.Wg = sync.WaitGroup{}
-
+	j.Extend = config.Extend
 	return err
 }
 

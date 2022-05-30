@@ -20,6 +20,8 @@ var (
 	target string
 	//正则表达式语法
 	upfilRegexp string
+	//选择主机组
+	hostgroup string
 )
 
 // 获取sftpc 客户端
@@ -52,24 +54,49 @@ var sftpUpFile = &cobra.Command{
 			fmt.Println("❌ requires at one arguments: -t target remote path")
 			os.Exit(1)
 		}
-
-		for _, ssh := range jenkinsMod.SshCs {
-			jenkinsMod.Wg.Add(1)
-			go func(ssh *jenkins.SshC) {
-				defer jenkinsMod.Wg.Done()
-				//sshclient := ssh.SshClient()
-				sshclient := ssh.SshClientRsaAndSshClient()
-				defer sshclient.Close()
-				sftpc := jenkins.NewSftpC(sshclient)
-				defer sftpc.Client.Close()
-				err := sftpc.UploadFile(args[0], target)
-				if err != nil {
-					log.Println(err)
-					return
-				}
-			}(ssh)
+		//选择主机组
+		if hostgroup != "" {
+			sshc, ok := jenkinsMod.Extend[hostgroup]
+			if !ok {
+				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				return
+			}
+			for _, ssh := range sshc {
+				jenkinsMod.Wg.Add(1)
+				go func(ssh *jenkins.SshC) {
+					defer jenkinsMod.Wg.Done()
+					//sshclient := ssh.SshClient()
+					sshclient := ssh.SshClientRsaAndSshClient()
+					defer sshclient.Close()
+					sftpc := jenkins.NewSftpC(sshclient)
+					defer sftpc.Client.Close()
+					err := sftpc.UploadFile(args[0], target)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+				}(ssh)
+			}
+			jenkinsMod.Wg.Wait()
+		} else {
+			for _, ssh := range jenkinsMod.SshCs {
+				jenkinsMod.Wg.Add(1)
+				go func(ssh *jenkins.SshC) {
+					defer jenkinsMod.Wg.Done()
+					//sshclient := ssh.SshClient()
+					sshclient := ssh.SshClientRsaAndSshClient()
+					defer sshclient.Close()
+					sftpc := jenkins.NewSftpC(sshclient)
+					defer sftpc.Client.Close()
+					err := sftpc.UploadFile(args[0], target)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+				}(ssh)
+			}
+			jenkinsMod.Wg.Wait()
 		}
-		jenkinsMod.Wg.Wait()
 
 	},
 }
@@ -93,24 +120,49 @@ var sftpUpFileRegexp = &cobra.Command{
 			fmt.Println("❌ requires at one arguments: -R Regular expressions")
 			os.Exit(1)
 		}
-
-		for _, ssh := range jenkinsMod.SshCs {
-			jenkinsMod.Wg.Add(1)
-			go func(ssh *jenkins.SshC) {
-				defer jenkinsMod.Wg.Done()
-				//sshclient := ssh.SshClient()
-				sshclient := ssh.SshClientRsaAndSshClient()
-				defer sshclient.Close()
-				sftpc := jenkins.NewSftpC(sshclient)
-				defer sftpc.Client.Close()
-				err := sftpc.UploadFileRegep(args[0], target, upfilRegexp)
-				if err != nil {
-					log.Println("read dir list fail ", err)
-					return
-				}
-			}(ssh)
+		//选择主机组
+		if hostgroup != "" {
+			sshc, ok := jenkinsMod.Extend[hostgroup]
+			if !ok {
+				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				return
+			}
+			for _, ssh := range sshc {
+				jenkinsMod.Wg.Add(1)
+				go func(ssh *jenkins.SshC) {
+					defer jenkinsMod.Wg.Done()
+					//sshclient := ssh.SshClient()
+					sshclient := ssh.SshClientRsaAndSshClient()
+					defer sshclient.Close()
+					sftpc := jenkins.NewSftpC(sshclient)
+					defer sftpc.Client.Close()
+					err := sftpc.UploadFileRegep(args[0], target, upfilRegexp)
+					if err != nil {
+						log.Println("read dir list fail ", err)
+						return
+					}
+				}(ssh)
+			}
+			jenkinsMod.Wg.Wait()
+		} else {
+			for _, ssh := range jenkinsMod.SshCs {
+				jenkinsMod.Wg.Add(1)
+				go func(ssh *jenkins.SshC) {
+					defer jenkinsMod.Wg.Done()
+					//sshclient := ssh.SshClient()
+					sshclient := ssh.SshClientRsaAndSshClient()
+					defer sshclient.Close()
+					sftpc := jenkins.NewSftpC(sshclient)
+					defer sftpc.Client.Close()
+					err := sftpc.UploadFileRegep(args[0], target, upfilRegexp)
+					if err != nil {
+						log.Println("read dir list fail ", err)
+						return
+					}
+				}(ssh)
+			}
+			jenkinsMod.Wg.Wait()
 		}
-		jenkinsMod.Wg.Wait()
 
 	},
 }
@@ -153,23 +205,51 @@ var sftpUpDir = &cobra.Command{
 			log.Println("本机目录不存在或路径不是目录")
 			os.Exit(1)
 		}
-		for _, ssh := range jenkinsMod.SshCs {
-			jenkinsMod.Wg.Add(1)
-			go func(ssh *jenkins.SshC) {
-				defer jenkinsMod.Wg.Done()
-				//sshclient := ssh.SshClient()
-				sshclient := ssh.SshClientRsaAndSshClient()
-				defer sshclient.Close()
-				sftpc := jenkins.NewSftpC(sshclient)
-				defer sftpc.Client.Close()
-				err := sftpc.UploadDirectory(args[0], target)
-				if err != nil {
-					log.Println("read dir list fail ", err)
-					return
-				}
-			}(ssh)
+		//选择主机组
+		if hostgroup != "" {
+			sshc, ok := jenkinsMod.Extend[hostgroup]
+			if !ok {
+				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				return
+			}
+			for _, ssh := range sshc {
+				jenkinsMod.Wg.Add(1)
+				go func(ssh *jenkins.SshC) {
+					defer jenkinsMod.Wg.Done()
+					//sshclient := ssh.SshClient()
+					sshclient := ssh.SshClientRsaAndSshClient()
+					defer sshclient.Close()
+					sftpc := jenkins.NewSftpC(sshclient)
+					defer sftpc.Client.Close()
+					err := sftpc.UploadDirectory(args[0], target)
+					if err != nil {
+						log.Println("read dir list fail ", err)
+						return
+					}
+				}(ssh)
+			}
+			jenkinsMod.Wg.Wait()
+
+		} else {
+			for _, ssh := range jenkinsMod.SshCs {
+				jenkinsMod.Wg.Add(1)
+				go func(ssh *jenkins.SshC) {
+					defer jenkinsMod.Wg.Done()
+					//sshclient := ssh.SshClient()
+					sshclient := ssh.SshClientRsaAndSshClient()
+					defer sshclient.Close()
+					sftpc := jenkins.NewSftpC(sshclient)
+					defer sftpc.Client.Close()
+					err := sftpc.UploadDirectory(args[0], target)
+					if err != nil {
+						log.Println("read dir list fail ", err)
+						return
+					}
+				}(ssh)
+			}
+			jenkinsMod.Wg.Wait()
+
 		}
-		jenkinsMod.Wg.Wait()
 
 	},
 }
@@ -192,40 +272,84 @@ var sftpDownFile = &cobra.Command{
 			log.Println("本机目录不存在或路径不是目录")
 			os.Exit(1)
 		}
-		fmt.Println("主机数量：", len(jenkinsMod.SshCs))
-		if len(jenkinsMod.SshCs) != 1 {
-			for _, ssh := range jenkinsMod.SshCs {
-				jenkinsMod.Wg.Add(1)
-				go func(ssh *jenkins.SshC) {
-					defer jenkinsMod.Wg.Done()
-					//sshclient := ssh.SshClient()
-					sshclient := ssh.SshClientRsaAndSshClient()
-					defer sshclient.Close()
-					sftpc := jenkins.NewSftpC(sshclient)
-					defer sftpc.Client.Close()
-					localIPpath := pathx.Join(args[0], strings.Split(sftpc.SshClient.RemoteAddr().String(), ":")[0])
-					//如果ip目录存在就不创建
-					_, err := os.Stat(localIPpath)
-					if err != nil {
-						err := os.Mkdir(localIPpath, 0755)
-						if err != nil {
-							log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
-							log.Fatal(err)
-						}
-					}
-					err = sftpc.DownLoadFile(localIPpath, target)
-					if err != nil {
-						log.Println(err)
-						return
-					}
-				}(ssh)
+		//选择主机组
+		if hostgroup != "" {
+			sshc, ok := jenkinsMod.Extend[hostgroup]
+			if !ok {
+				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				return
 			}
-			jenkinsMod.Wg.Wait()
+			fmt.Println("主机数量：", len(sshc))
+			if len(sshc) != 1 {
+				for _, ssh := range sshc {
+					jenkinsMod.Wg.Add(1)
+					go func(ssh *jenkins.SshC) {
+						defer jenkinsMod.Wg.Done()
+						//sshclient := ssh.SshClient()
+						sshclient := ssh.SshClientRsaAndSshClient()
+						defer sshclient.Close()
+						sftpc := jenkins.NewSftpC(sshclient)
+						defer sftpc.Client.Close()
+						localIPpath := pathx.Join(args[0], strings.Split(sftpc.SshClient.RemoteAddr().String(), ":")[0])
+						//如果ip目录存在就不创建
+						_, err := os.Stat(localIPpath)
+						if err != nil {
+							err := os.Mkdir(localIPpath, 0755)
+							if err != nil {
+								log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
+								log.Fatal(err)
+							}
+						}
+						err = sftpc.DownLoadFile(localIPpath, target)
+						if err != nil {
+							log.Println(err)
+							return
+						}
+					}(ssh)
+				}
+				jenkinsMod.Wg.Wait()
+			} else {
+				sshclient := sshc[0].SshClient()
+				sftpc := jenkins.NewSftpC(sshclient)
+				sftpc.DownLoadFile(args[0], target)
+			}
 		} else {
-			sshclient := jenkinsMod.SshCs[0].SshClient()
-			sftpc := jenkins.NewSftpC(sshclient)
-			sftpc.DownLoadFile(args[0], target)
+			fmt.Println("主机数量：", len(jenkinsMod.SshCs))
+			if len(jenkinsMod.SshCs) != 1 {
+				for _, ssh := range jenkinsMod.SshCs {
+					jenkinsMod.Wg.Add(1)
+					go func(ssh *jenkins.SshC) {
+						defer jenkinsMod.Wg.Done()
+						//sshclient := ssh.SshClient()
+						sshclient := ssh.SshClientRsaAndSshClient()
+						defer sshclient.Close()
+						sftpc := jenkins.NewSftpC(sshclient)
+						defer sftpc.Client.Close()
+						localIPpath := pathx.Join(args[0], strings.Split(sftpc.SshClient.RemoteAddr().String(), ":")[0])
+						//如果ip目录存在就不创建
+						_, err := os.Stat(localIPpath)
+						if err != nil {
+							err := os.Mkdir(localIPpath, 0755)
+							if err != nil {
+								log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
+								log.Fatal(err)
+							}
+						}
+						err = sftpc.DownLoadFile(localIPpath, target)
+						if err != nil {
+							log.Println(err)
+							return
+						}
+					}(ssh)
+				}
+				jenkinsMod.Wg.Wait()
+			} else {
+				sshclient := jenkinsMod.SshCs[0].SshClient()
+				sftpc := jenkins.NewSftpC(sshclient)
+				sftpc.DownLoadFile(args[0], target)
+			}
 		}
+
 	},
 }
 
@@ -247,45 +371,90 @@ var sftpDownDir = &cobra.Command{
 			log.Println("本机目录不存在或路径不是目录")
 			os.Exit(1)
 		}
-		fmt.Println("主机数量：", len(jenkinsMod.SshCs))
-		if len(jenkinsMod.SshCs) != 1 {
-			for _, ssh := range jenkinsMod.SshCs {
-				jenkinsMod.Wg.Add(1)
-				go func(ssh *jenkins.SshC) {
-					defer jenkinsMod.Wg.Done()
-					//sshclient := ssh.SshClient()
-					sshclient := ssh.SshClientRsaAndSshClient()
-					defer sshclient.Close()
-					sftpc := jenkins.NewSftpC(sshclient)
-					defer sftpc.Client.Close()
-					localIPpath := pathx.Join(args[0], strings.Split(sftpc.SshClient.RemoteAddr().String(), ":")[0])
-					//如果ip目录存在就不创建
-					_, err := os.Stat(localIPpath)
-					if err != nil {
-						err := os.Mkdir(localIPpath, 0755)
-						if err != nil {
-							log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
-							log.Fatal(err)
-						}
-					}
-					err = sftpc.DownLoadDir(localIPpath, target)
-					if err != nil {
-						log.Println("remote read dir list fail ", err)
-						return
-					}
-				}(ssh)
+		//选择主机组
+		if hostgroup != "" {
+			sshc, ok := jenkinsMod.Extend[hostgroup]
+			if !ok {
+				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				return
 			}
-			jenkinsMod.Wg.Wait()
+			fmt.Println("主机数量：", len(sshc))
+			if len(sshc) != 1 {
+				for _, ssh := range sshc {
+					jenkinsMod.Wg.Add(1)
+					go func(ssh *jenkins.SshC) {
+						defer jenkinsMod.Wg.Done()
+						//sshclient := ssh.SshClient()
+						sshclient := ssh.SshClientRsaAndSshClient()
+						defer sshclient.Close()
+						sftpc := jenkins.NewSftpC(sshclient)
+						defer sftpc.Client.Close()
+						localIPpath := pathx.Join(args[0], strings.Split(sftpc.SshClient.RemoteAddr().String(), ":")[0])
+						//如果ip目录存在就不创建
+						_, err := os.Stat(localIPpath)
+						if err != nil {
+							err := os.Mkdir(localIPpath, 0755)
+							if err != nil {
+								log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
+								log.Fatal(err)
+							}
+						}
+						err = sftpc.DownLoadDir(localIPpath, target)
+						if err != nil {
+							log.Println("remote read dir list fail ", err)
+							return
+						}
+					}(ssh)
+				}
+				jenkinsMod.Wg.Wait()
+			} else {
+				sshclient := sshc[0].SshClient()
+				sftpc := jenkins.NewSftpC(sshclient)
+				sftpc.DownLoadDir(args[0], target)
+			}
 		} else {
-			sshclient := jenkinsMod.SshCs[0].SshClient()
-			sftpc := jenkins.NewSftpC(sshclient)
-			sftpc.DownLoadDir(args[0], target)
+			fmt.Println("主机数量：", len(jenkinsMod.SshCs))
+			if len(jenkinsMod.SshCs) != 1 {
+				for _, ssh := range jenkinsMod.SshCs {
+					jenkinsMod.Wg.Add(1)
+					go func(ssh *jenkins.SshC) {
+						defer jenkinsMod.Wg.Done()
+						//sshclient := ssh.SshClient()
+						sshclient := ssh.SshClientRsaAndSshClient()
+						defer sshclient.Close()
+						sftpc := jenkins.NewSftpC(sshclient)
+						defer sftpc.Client.Close()
+						localIPpath := pathx.Join(args[0], strings.Split(sftpc.SshClient.RemoteAddr().String(), ":")[0])
+						//如果ip目录存在就不创建
+						_, err := os.Stat(localIPpath)
+						if err != nil {
+							err := os.Mkdir(localIPpath, 0755)
+							if err != nil {
+								log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
+								log.Fatal(err)
+							}
+						}
+						err = sftpc.DownLoadDir(localIPpath, target)
+						if err != nil {
+							log.Println("remote read dir list fail ", err)
+							return
+						}
+					}(ssh)
+				}
+				jenkinsMod.Wg.Wait()
+			} else {
+				sshclient := jenkinsMod.SshCs[0].SshClient()
+				sftpc := jenkins.NewSftpC(sshclient)
+				sftpc.DownLoadDir(args[0], target)
+			}
 		}
+
 	},
 }
 
 func init() {
 	sftpCmd.PersistentFlags().StringVarP(&target, "target", "t", "", "Specify a target path or remote path(指定远程主机的目录)")
+	sftpCmd.PersistentFlags().StringVarP(&hostgroup, "hosts", "H", "", "Select the host group you want to activate(选择主机组,不选择默认用Sshs组)")
 	sftpUpFileRegexp.Flags().StringVarP(&upfilRegexp, "regexp", "R", "", "Specify a Regexp expressions  with Use RE2 syntax(指定正则表达式)")
 	Regexptest.Flags().StringVarP(&upfilRegexp, "regexp", "R", "", "Specify a Regexp expressions  with Use RE2 syntax(指定正则表达式)")
 

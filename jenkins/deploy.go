@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	xx string = "------------------------------"
+	xx string = " ------------------- "
 )
 
 //保存了ssh连接的基本信息
@@ -154,7 +154,7 @@ func (s *SshC) Execbash(cmd string) error {
 		log.Println("Failed to run: " + err.Error())
 		return err
 	}
-	log.Printf("%sremote host:%s exec bash remote server finished!%s", xx, client.RemoteAddr().String(), xx)
+	log.Printf("%sremote host:%s exec bash remote server finished!", xx, client.RemoteAddr().String())
 	fmt.Println(b.String())
 	return nil
 }
@@ -204,10 +204,10 @@ func (f *SftpC) ExecTask(localFilePath, remoteFilePath string) error {
 	dstFile := path.Join(remoteFilePath, remoteFileName)
 	if err := session.Run(fmt.Sprintf("/usr/bin/sh %s", dstFile)); err != nil {
 		//log.Println("执行脚本失败")
-		log.Printf("%sremote host:%s exec bash remote server Failed!%s", xx, f.SshClient.RemoteAddr().String(), xx)
+		log.Printf("%sremote host:%s exec bash remote server Failed!", xx, f.SshClient.RemoteAddr().String())
 		return err
 	}
-	log.Printf("%sremote host:%s exec bash remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), xx)
+	log.Printf("%sremote host:%s exec bash remote server finished!", xx, f.SshClient.RemoteAddr().String())
 	return nil
 
 }
@@ -248,7 +248,7 @@ func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) error {
 	//f.Client.Chmod(path.Join(remoteFilePath, remoteFileName), fs.Mode())
 
 	//log.Println(f.SshClient.RemoteAddr().String(),localFilePath," copy file to remote server finished!")
-	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), localFilePath, xx)
+	log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), localFilePath)
 	return nil
 }
 
@@ -299,7 +299,7 @@ func (f *SftpC) UploadFilebuf(localFilePath, remoteFilePath string) error {
 	//f.Client.Chmod(path.Join(remoteFilePath, remoteFileName), fs.Mode())
 
 	//log.Println(f.SshClient.RemoteAddr().String(),localFilePath," copy file to remote server finished!")
-	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), localFilePath, xx)
+	log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), localFilePath)
 	return nil
 }
 
@@ -325,7 +325,7 @@ func (f *SftpC) UploadDirectory(localPath string, remotePath string) error {
 		}
 	}
 	//log.Println(localPath + " copy directory to remote server finished!")
-	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), localPath, xx)
+	log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), localPath)
 	return nil
 }
 
@@ -352,7 +352,7 @@ func (f *SftpC) DownLoadFile(localpath, remotepath string) error {
 		return err
 	}
 	//fmt.Println(remotepath, "文件下载成功")
-	log.Printf("%sremote host:%s path:%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), remotepath, xx)
+	log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), remotepath)
 	return nil
 }
 
@@ -383,7 +383,7 @@ func (f *SftpC) DownLoadFileP(localpath, remotepath string) {
 		log.Fatal("文件写入失败", err)
 	}
 	//fmt.Println(remotepath, "文件下载成功")
-	log.Printf("%sremote host:%s path：%s copy file to remote server finished!%s", xx, f.SshClient.RemoteAddr().String(), remotepath, xx)
+	log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), remotepath)
 }
 
 //下载目录，将远端目录下载到本地目录下

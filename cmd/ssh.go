@@ -30,30 +30,63 @@ var sshBash = &cobra.Command{
 			fmt.Println("❌ requires at one arguments: bash ")
 			os.Exit(1)
 		}
-		for _, ssh := range jenkinsMod.SshCs {
-			jenkinsMod.Wg.Add(1)
-			go func(ssh *jenkins.SshC) {
-				defer jenkinsMod.Wg.Done()
-				//sshclient := ssh.SshClient()
-				//sftpc := jenkins.NewSftpC(sshclient)
-				if !ssh.Disbash {
-					if ssh.Cmd != "" {
-						err := ssh.Execbash(ssh.Cmd)
-						if err != nil {
-							log.Println(err)
-							return
-						}
-					} else {
-						err := ssh.Execbash(args[0])
-						if err != nil {
-							log.Println(err)
-							return
+		//判断是否指定主机组
+		if hostgroup != "" {
+			sshc, ok := jenkinsMod.Extend[hostgroup]
+			if !ok {
+				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				return
+			}
+			for _, ssh := range sshc {
+				jenkinsMod.Wg.Add(1)
+				go func(ssh *jenkins.SshC) {
+					defer jenkinsMod.Wg.Done()
+					//sshclient := ssh.SshClient()
+					//sftpc := jenkins.NewSftpC(sshclient)
+					if !ssh.Disbash {
+						if ssh.Cmd != "" {
+							err := ssh.Execbash(ssh.Cmd)
+							if err != nil {
+								log.Println(err)
+								return
+							}
+						} else {
+							err := ssh.Execbash(args[0])
+							if err != nil {
+								log.Println(err)
+								return
+							}
 						}
 					}
-				}
-			}(ssh)
+				}(ssh)
+			}
+			jenkinsMod.Wg.Wait()
+		} else {
+			for _, ssh := range jenkinsMod.SshCs {
+				jenkinsMod.Wg.Add(1)
+				go func(ssh *jenkins.SshC) {
+					defer jenkinsMod.Wg.Done()
+					//sshclient := ssh.SshClient()
+					//sftpc := jenkins.NewSftpC(sshclient)
+					if !ssh.Disbash {
+						if ssh.Cmd != "" {
+							err := ssh.Execbash(ssh.Cmd)
+							if err != nil {
+								log.Println(err)
+								return
+							}
+						} else {
+							err := ssh.Execbash(args[0])
+							if err != nil {
+								log.Println(err)
+								return
+							}
+						}
+					}
+				}(ssh)
+			}
+			jenkinsMod.Wg.Wait()
 		}
-		jenkinsMod.Wg.Wait()
 
 	},
 }
@@ -71,27 +104,51 @@ var sshTask = &cobra.Command{
 			fmt.Println("❌ requires at one arguments: -t target remote path")
 			os.Exit(1)
 		}
-		for _, ssh := range jenkinsMod.SshCs {
-			jenkinsMod.Wg.Add(1)
-			go func(ssh *jenkins.SshC) {
-				defer jenkinsMod.Wg.Done()
-				//sshclient := ssh.SshClient()
-				sshclient := ssh.SshClientRsaAndSshClient()
-				sftpc := jenkins.NewSftpC(sshclient)
-				err := sftpc.ExecTask(args[0], target)
-				if err != nil {
-					log.Println(err)
-					return
-				}
-			}(ssh)
+		if hostgroup != "" {
+			sshc, ok := jenkinsMod.Extend[hostgroup]
+			if !ok {
+				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				return
+			}
+			for _, ssh := range sshc {
+				jenkinsMod.Wg.Add(1)
+				go func(ssh *jenkins.SshC) {
+					defer jenkinsMod.Wg.Done()
+					//sshclient := ssh.SshClient()
+					sshclient := ssh.SshClientRsaAndSshClient()
+					sftpc := jenkins.NewSftpC(sshclient)
+					err := sftpc.ExecTask(args[0], target)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+				}(ssh)
+			}
+			jenkinsMod.Wg.Wait()
+		} else {
+			for _, ssh := range jenkinsMod.SshCs {
+				jenkinsMod.Wg.Add(1)
+				go func(ssh *jenkins.SshC) {
+					defer jenkinsMod.Wg.Done()
+					//sshclient := ssh.SshClient()
+					sshclient := ssh.SshClientRsaAndSshClient()
+					sftpc := jenkins.NewSftpC(sshclient)
+					err := sftpc.ExecTask(args[0], target)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+				}(ssh)
+			}
+			jenkinsMod.Wg.Wait()
 		}
-		jenkinsMod.Wg.Wait()
 
 	},
 }
 
 func init() {
 	sshCmd.PersistentFlags().StringVarP(&target, "target", "t", "", "Specify a target path or remote path(指定远程目录)")
+	sshCmd.PersistentFlags().StringVarP(&hostgroup, "hosts", "H", "", "Select the host group you want to activate(选择主机组,不选择默认用Sshs组)")
 	rootCmd.AddCommand(sshCmd)
 	sshCmd.AddCommand(sshBash)
 	sshCmd.AddCommand(sshTask)
