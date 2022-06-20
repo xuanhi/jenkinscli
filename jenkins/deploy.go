@@ -462,3 +462,39 @@ func MatchFile(reg, name string) bool {
 	}
 	return myRegex.MatchString(name)
 }
+
+//正则匹配 key:vaule 形式用于校验数据
+func MapFormat(name string) bool {
+	myRegex, err := regexp.Compile(".*:.*")
+	if err != nil {
+		log.Println(err)
+	}
+	return myRegex.MatchString(name)
+
+}
+
+//参数构建传入字符串处理
+func ArgstoMap(args []string) map[string]string {
+	argmap := make(map[string]string)
+	//var argmap map[string]string
+	for k, arg := range args {
+		//跳过第一个参数，因为第一个是构建job名参数
+		if k == 0 {
+			continue
+		}
+		if MapFormat(arg) {
+			//切割字符串
+			kv := strings.Split(arg, ":")
+			fmt.Println("kv:", kv)
+			if len(kv) == 2 {
+				argmap[kv[0]] = kv[1]
+			} else {
+				log.Fatalf("一个参数只能有一个：字符")
+			}
+
+		} else {
+			log.Printf("第%d个参数<%s>格式不正确,将忽略此项设置", k+1, arg)
+		}
+	}
+	return argmap
+}

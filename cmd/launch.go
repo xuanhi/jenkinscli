@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/xuanhi/jenkinscli/jenkins"
 )
 
 var (
@@ -28,11 +29,13 @@ the default is not to trigger an artifact download if the download path is speci
 启动jenkins流水线,第一个参数为流水线名,如果是java还可以构建完成后下载工件到-p指定的本地目录`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("launch called")
-		if len(args) != 1 {
+		if len(args) < 1 {
 			fmt.Println("❌ requires at one arguments: JOB_NAME")
 			os.Exit(1)
 		}
-		qid, err := jenkinsMod.Instance.BuildJob(jenkinsMod.Context, args[0], nil) //构建并返回队列id
+		//注入构建参数
+		mapv := jenkins.ArgstoMap(args)
+		qid, err := jenkinsMod.Instance.BuildJob(jenkinsMod.Context, args[0], mapv) //构建并返回队列id
 		fmt.Println("------queueid:", qid)
 		if err != nil {
 			panic(err)

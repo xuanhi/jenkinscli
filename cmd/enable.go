@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/xuanhi/jenkinscli/jenkins"
 )
 
 // enableCmd represents the enable command
@@ -23,7 +24,7 @@ var enableJobCmd = &cobra.Command{
 	Use:   "job",
 	Short: "Enable job",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 1 {
+		if len(args) < 1 {
 			return errors.New("❌ requires at least one argument")
 		}
 		fmt.Printf("⏳ Enabling job %s...\n", args[0])
@@ -32,8 +33,15 @@ var enableJobCmd = &cobra.Command{
 			fmt.Printf("unable to find the job: %s - err: %s \n", args[0], err)
 			os.Exit(1)
 		}
+		mapv := jenkins.ArgstoMap(args)
+		// mapv := map[string]string{
+		// 	"xhh":       "123456789",
+		// 	"xhhstring": "remote string",
+		// 	"xhhtext":   "remote text",
+		// 	"xhhradio":  "三",
+		// }
 		//job.Enable(jenkinsMod.Context)
-		queueid, err := job.InvokeSimple(jenkinsMod.Context, nil)
+		queueid, err := job.InvokeSimple(jenkinsMod.Context, mapv)
 		if err != nil {
 			panic(err)
 		}

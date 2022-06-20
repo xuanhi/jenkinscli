@@ -72,3 +72,14 @@ func TestExecbash(t *testing.T) {
 func TestExecTask(t *testing.T) {
 	sftpC.ExecTask("/root/test.sh", "/root")
 }
+
+func TestMapFormat(t *testing.T) {
+	b := MapFormat("xhhtext:remote text=aa")
+	fmt.Println(b)
+}
+
+func TestArgstoMap(t *testing.T) {
+	aa := []string{"pc-system", "xhhradio:aaa:ccc", "xhhrext:bbb"}
+	bb := ArgstoMap(aa)
+	fmt.Println(bb)
+}
