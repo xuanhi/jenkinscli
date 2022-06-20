@@ -10,6 +10,16 @@ jenkinscli 是一个简单的运维工具，大体上分为两个功能，远程
 
 **注意：本版本将使用yaml格式的配置文件**
 
+**更新说明：支持远程触发参数化构建类型，换句话说，可以通过远程触发构建enable launch 第二个参数起到任意个参数数量为参数构建选择值，格式必须为name:value 形式。name为参数名，在Jenkins中配置的参数名，value就是设置参数的值。经过测试，不仅可以用于jenkins自带的参数类型，也可以用于扩展参数插件（Extended Choice Parameter）中的类型，比如单选radio类型**
+
+示例：
+
+```shell
+./jenkinscli launch  pc-system xhh:123456789 "xhhstring:remote string" "xhhtext:remote3 text" "xhhradio:三"
+```
+
+建议注入参数时使用引号，特别是有空格的参数名或值必须使用引号。
+
 **使用指南** 
 
 ## 1.配置jenkins登录信息
@@ -343,6 +353,74 @@ jenkinscli ssh task
 ```
 
 -t 指定远程执行脚本的工作目录 
+
+
+### 3.3使用Extend管理主机群
+
+Extend是原来Sshs主机群的一个加强版，你可以配置多个主机群，在命令行指定使用哪个主机群，适用于sftp和ssh模块，如果不知道这个选项，默认使用Sshs主机群
+
+#### 3.3.1 编写配置文件
+
+```yaml
+Extend:
+- centos:
+  - {User: root,Host: 192.168.100.34}
+  - {User: root,Password: admin12345,Host: 192.168.100.31,Port: 22}
+- openeul:
+  - {User: root,Password: admin12345,Host: 192.168.100.31,Port: 22}
+  - {User: root,Password: admin12345,Host: 192.168.100.32,Port: 22}
+
+```
+
+字段为Extend
+
+你可以自定义多个主机群，在需要时使用它，比如，这里定义了两个主机群，centos和openeul (名字可以随意取)
+
+使用时使用参数 -H centos 表示作用域centos下的主机群,不指定-H 也就时使用默认的Sshs字段下的主机群。
+
+#### 3.3.2 示例
+
+使用自定义centos主机群:
+
+```shell
+[root@localhost jenkinscli]# ./jenkinscli ssh -H centos bash "date"
+2022/05/30 16:00:45  ------------------- remote host:192.168.100.34:22 exec bash remote server finished!
+Mon May 30 16:00:45 CST 2022
+
+2022/05/30 16:00:45  ------------------- remote host:192.168.100.31:22 exec bash remote server finished!
+Mon May 30 16:00:45 CST 2022
+```
+
+同时sftp和ssh模块都是一样的原理，不指定-H就表示使用默认的Sshs字段的主机群。
+
+#### 3.3.3 完整配置文件示例参考
+
+```yaml
+Server: http://127.0.0.1:8080/
+JenkinsUser: admin
+Token: 113a8b8
+MailSmpt: smtp.qq.com
+MailPort: 25
+MailUser: 123456789@qq.com
+MailToken: lrfa
+MailFrom: 123456789@qq.com
+MailTo:
+- 987654321@qq.com
+MailSub: pc-system Test!!!
+Sshs:
+- {User: root,Host: 192.168.100.34}
+- {User: root,Password: admin12345,Host: 192.168.100.31,Port: 22}
+- {User: root,Password: admin12345,Host: 192.168.100.32,Port: 22}
+Extend:
+- centos:
+  - {User: root,Host: 192.168.100.34}
+  - {User: root,Password: admin12345,Host: 192.168.100.31,Port: 22}
+- openeul:
+  - {User: root,Password: admin12345,Host: 192.168.100.31,Port: 22}
+  - {User: root,Password: admin12345,Host: 192.168.100.32,Port: 22}
+```
+
+
 
 ## 4.常见问题
 
