@@ -10,6 +10,8 @@ jenkinscli 是一个简单的运维工具，大体上分为两个功能，远程
 
 **注意：本版本将使用yaml格式的配置文件**
 
+**3.0.3更新：添加了tmpl功能**
+
 **更新说明：支持远程触发参数化构建类型，换句话说，可以通过远程触发构建enable launch 第二个参数起到任意个参数数量为参数构建选择值，格式必须为name:value 形式。name为参数名，在Jenkins中配置的参数名，value就是设置参数的值。经过测试，不仅可以用于jenkins自带的参数类型，也可以用于扩展参数插件（Extended Choice Parameter）中的类型，比如单选radio类型**
 
 示例：
@@ -420,8 +422,112 @@ Extend:
   - {User: root,Password: admin12345,Host: 192.168.100.32,Port: 22}
 ```
 
+## 4.使用动态生成文件tmpl功能
 
+tmpl动态生成文件使用的go语言template包，需要提供一个模板文件，模板定义示例：tmpl.yaml 文件名
 
-## 4.常见问题
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: {{.number}}
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: {{.image}}
+        ports:
+        - containerPort: 80
+```
+
+{{.name}} 来定义变量的
+
+### 4.1 tmpl local 用法
+
+这个是用于本机动态生成文件，可以解析模板文件后输出到终端和文件里
+
+上面的例子中，我们可以动态生成文件：
+
+```bash
+ ./jenkinscli -I tmpl local -l /root/tmpl.yaml "/root/test.yaml" "image:redis" "number:4"
+```
+
+-I :表示忽略jenkins 初始化错误，如果你没有配置Jenkins登录信息程序会退出
+
+-l :指定模板文件
+
+第一个参数 :"/root/test.yaml" 指定输出位置
+
+第二个到无限个开始为自定义变量，用于替换模板文件中的变量。格式为name:value  。其中name为你模板中变量的名一致。
+
+**注意：如果没有为模板文件中的变量在命令行设置替换值name:value ,那么生成的新文件的变量位置就会为空。**
+
+如果第一个参数指定为nil 就会将解析后的模板文件输出到终端：
+
+```bash
+./jenkinscli -I tmpl local -l /root/tmpl.yaml "nil" "image:redis"
+```
+
+### 4.2 tmpl remote 用法
+
+可以将模板文件解析后发送到远端机器的目录下,操作类似于sftp上传文件：
+
+```bash
+ ./jenkinscli tmpl remote -I -l -H openeul /root/tmpl.yaml "/root/k8stest.yaml" "image:mongo" "number:3"
+```
+
+-I :表示忽略jenkins 初始化错误，如果你没有配置Jenkins登录信息程序会退出
+
+-l :指定模板文件
+
+-H : 指定主机组名称，如果不指定默认就是默认主机组Sshs。主机组就是定义一个主机群，详细见sftp功能的使用说明
+
+**注意：remote 相比local 是不能将解析的模板文件输出到终端的，也就是不支持"nil"**
+
+### 4.3 tmpl 模板高级用法
+
+和go语言的模板用法一致，这里列举几个常见用法：
+
+1.当我们在命令行中没有为模板的变量设置值时，我们或许需要为它们设置一个默认值，可以使用模板的条件语句，用法如下(还是已上方yaml文件为例)
+
+```bash
+{{if pipeline}} T1 {{else}} T0 {{end}}
+    如果pipeline的值为empty，输出T0执行结果，否则输出T1执行结果。不改变dot的值。
+```
+
+修改如下：
+
+```yaml
+ replicas: {{if .number}}{{.number}}{{else}}1{{end}}
+```
+
+这样当没有指定replicas值时就会设置为1 
+
+我们也可以用其它的语法：
+
+```yaml
+ replicas: {{with .number}}{{.}}{{else}}1{{end}}
+```
+
+与上方的效果是一样的
+
+```bash
+{{with pipeline}} T1 {{else}} T0 {{end}}
+    如果pipeline为empty，不改变dot并执行T0，否则dot设为pipeline的值并执行T1。
+```
+
+with 表示会取出 .number 的值再赋值给 '.'  因此直接使用{{.}}就是它的值。如果不是with是if, '.'表示一个map类型。我们需要'.number'来获取值，也就是说要指定一个字段名
+
+## 5.常见问题
 
 1.如果在配置文件没有指定Jenkins登录的信息会导致jengkins初始化失败从而退出程序。通常在单独使用某个子命令时遇到，比如使用sftp 、ssh、email等。**我们可以通过-I来忽略Jenkins初始化报错导致的程序退出。这样你就可以单独使用其它子命令了。**
