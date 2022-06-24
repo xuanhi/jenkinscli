@@ -83,3 +83,11 @@ func TestArgstoMap(t *testing.T) {
 	bb := ArgstoMap(aa)
 	fmt.Println(bb)
 }
+
+func TestTextTemplate(t *testing.T) {
+	data := map[string]string{
+		"number": "2",
+		"image":  "mysql",
+	}
+	TextTemplate("/root/tmpl.yaml", "nil", data)
+}

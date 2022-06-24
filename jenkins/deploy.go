@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"html/template"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
@@ -252,6 +254,25 @@ func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) error {
 	return nil
 }
 
+//用于模板动态生成文件再上传至远端服务器
+func (f *SftpC) TmplandUploadFile(infilepath, outfilepath string, mod uint32, data map[string]string) error {
+	file, err := ioutil.ReadFile(infilepath)
+	if err != nil {
+		log.Fatalln("读取文件错误", err)
+	}
+	t := template.Must(template.New("k8s").Parse(string(file)))
+	ftpfile, err := f.Client.Create(outfilepath)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	if mod != 0 {
+		err = ftpfile.Chmod(fs.FileMode(mod))
+	}
+
+	t.Execute(ftpfile, data)
+	return err
+}
+
 //使用缓存上传文件 指定文件路径到远程目录下
 func (f *SftpC) UploadFilebuf(localFilePath, remoteFilePath string) error {
 	srcFile, err := os.Open(localFilePath)
@@ -485,7 +506,7 @@ func ArgstoMap(args []string) map[string]string {
 		if MapFormat(arg) {
 			//切割字符串
 			kv := strings.Split(arg, ":")
-			fmt.Println("kv:", kv)
+			log.Println("kv:", kv)
 			if len(kv) == 2 {
 				argmap[kv[0]] = kv[1]
 			} else {
@@ -497,4 +518,25 @@ func ArgstoMap(args []string) map[string]string {
 		}
 	}
 	return argmap
+}
+
+//动态模板文件方法，给一个输出类型和map参数
+func TextTemplate(infilepath, outfilepath string, data map[string]string) {
+	f, err := ioutil.ReadFile(infilepath)
+	if err != nil {
+		log.Fatalln("读取文件错误", err)
+	}
+	t := template.Must(template.New("k8s").Parse(string(f)))
+	if outfilepath == "nil" {
+		err := t.Execute(os.Stdout, data)
+		if err != nil {
+			log.Println("executing template:", err)
+		}
+	} else {
+		f, err := os.Create(outfilepath)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		t.Execute(f, data)
+	}
 }

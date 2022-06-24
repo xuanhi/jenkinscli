@@ -70,7 +70,7 @@ func initConfig() {
 			log.Println("连接Jenkins出错,退出程序：", err)
 			os.Exit(1)
 		} else {
-			fmt.Println("❌ jenkins server unreachable: " + jenkinsMod.Server)
+			log.Println("❌ jenkins server unreachable: " + jenkinsMod.Server)
 			log.Println("连接Jenkins出错,忽略程序继续执行:", err)
 		}
 
