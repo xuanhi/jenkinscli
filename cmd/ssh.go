@@ -13,6 +13,12 @@ import (
 	"github.com/xuanhi/jenkinscli/jenkins"
 )
 
+//脚本的位置参数
+var canshu string
+
+//sudo密码
+var sudo string
+
 // sshCmd represents the ssh command
 var sshCmd = &cobra.Command{
 	Use:   "ssh",
@@ -117,7 +123,7 @@ var sshTask = &cobra.Command{
 					//sshclient := ssh.SshClient()
 					sshclient := ssh.SshClientRsaAndSshClient()
 					sftpc := jenkins.NewSftpC(sshclient)
-					err := sftpc.ExecTask(args[0], target)
+					err := sftpc.ExecTask(args[0], target, canshu, sudo)
 					if err != nil {
 						log.Println(err)
 						return
@@ -133,7 +139,7 @@ var sshTask = &cobra.Command{
 					//sshclient := ssh.SshClient()
 					sshclient := ssh.SshClientRsaAndSshClient()
 					sftpc := jenkins.NewSftpC(sshclient)
-					err := sftpc.ExecTask(args[0], target)
+					err := sftpc.ExecTask(args[0], target, canshu, sudo)
 					if err != nil {
 						log.Println(err)
 						return
@@ -149,6 +155,9 @@ var sshTask = &cobra.Command{
 func init() {
 	sshCmd.PersistentFlags().StringVarP(&target, "target", "t", "", "Specify a target path or remote path(指定远程目录)")
 	sshCmd.PersistentFlags().StringVarP(&hostgroup, "hosts", "H", "", "Select the host group you want to activate(选择主机组,不选择默认用Sshs组)")
+	sshTask.Flags().StringVarP(&canshu, "canshu", "c", "", "Specify location parameters for the script(为bash脚本键入位置参数,是一个字符串类型多个参数用空格隔开)")
+	sshTask.Flags().StringVarP(&sudo, "sudo", "s", "", "Specify the sudo password when executing the script(对于ubuntu系统执行脚本时指定sudo密码)")
+
 	rootCmd.AddCommand(sshCmd)
 	sshCmd.AddCommand(sshBash)
 	sshCmd.AddCommand(sshTask)

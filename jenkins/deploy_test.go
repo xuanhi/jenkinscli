@@ -70,7 +70,7 @@ func TestExecbash(t *testing.T) {
 }
 
 func TestExecTask(t *testing.T) {
-	sftpC.ExecTask("/root/test.sh", "/root")
+	sftpC.ExecTask("/root/test.sh", "/root", "", "")
 }
 
 func TestMapFormat(t *testing.T) {

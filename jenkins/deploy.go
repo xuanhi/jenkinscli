@@ -186,7 +186,7 @@ func (f *SftpC) SftpClient() {
 }
 
 //远程执行sh脚本
-func (f *SftpC) ExecTask(localFilePath, remoteFilePath string) error {
+func (f *SftpC) ExecTask(localFilePath, remoteFilePath, arg, sudo string) error {
 	// err := os.Chmod(localFilePath, 0755)
 	// if err != nil {
 	// 	log.Println("添加执行权限遇到错误", err)
@@ -204,12 +204,24 @@ func (f *SftpC) ExecTask(localFilePath, remoteFilePath string) error {
 	defer session.Close()
 	remoteFileName := path.Base(localFilePath)
 	dstFile := path.Join(remoteFilePath, remoteFileName)
-	if err := session.Run(fmt.Sprintf("/usr/bin/sh %s", dstFile)); err != nil {
-		//log.Println("执行脚本失败")
-		log.Printf("%sremote host:%s exec bash remote server Failed!", xx, f.SshClient.RemoteAddr().String())
-		return err
+	canshu := arg
+	if sudo != "" {
+		if err := session.Run(fmt.Sprintf("/usr/bin/bash -c \"echo %s | sudo -S %s %s\"", sudo, dstFile, canshu)); err != nil {
+			//log.Println("执行脚本失败")
+			log.Printf("%sremote host:%s exec bash remote server Failed!", xx, f.SshClient.RemoteAddr().String())
+			return err
+		}
+
+		log.Printf("%sremote host:%s exec bash remote server finished!", xx, f.SshClient.RemoteAddr().String())
+	} else {
+		if err := session.Run(fmt.Sprintf("/usr/bin/sh %s %s", dstFile, canshu)); err != nil {
+			//log.Println("执行脚本失败")
+			log.Printf("%sremote host:%s exec bash remote server Failed!", xx, f.SshClient.RemoteAddr().String())
+			return err
+		}
+		log.Printf("%sremote host:%s exec bash remote server finished!", xx, f.SshClient.RemoteAddr().String())
 	}
-	log.Printf("%sremote host:%s exec bash remote server finished!", xx, f.SshClient.RemoteAddr().String())
+
 	return nil
 
 }
