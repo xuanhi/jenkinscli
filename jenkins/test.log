@@ -1,0 +1,6 @@
+2022-12-23T16:40:35.581+0800	[34mINFO[0m	jenkins/deploy_test.go:74	status [1;32;40m[SUCCESS][0m  host [1;36;40m [192.168.31.201:22][0m  stdout:
+ ------------------- 
+ Fri Dec 23 16:40:35 CST 2022
+
+
+

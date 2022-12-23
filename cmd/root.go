@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -35,16 +34,17 @@ var jenkinsMod jenkins.Jenkins
 var jenkinsConfig jenkins.Config
 var configFile string
 
-//免疫程序连接Jenkins服务器初始化报错
+// 免疫程序连接Jenkins服务器初始化报错
 var immunity bool
 
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "", "", "Path to config file(指定配置文件路径)")
 	rootCmd.PersistentFlags().BoolVarP(&immunity, "immunity", "I", false, "Used to prevent the jenkins server from exiting with an initialized error(免疫Jenkins初始化保存导致的程序退出)")
+
 }
 
-//加载配置文件
+// 加载配置文件
 func initConfig() {
 	dirname, err := os.UserHomeDir() //获取家目录
 	if err != nil {

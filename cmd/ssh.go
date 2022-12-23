@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -11,12 +10,13 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/xuanhi/jenkinscli/jenkins"
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 )
 
-//脚本的位置参数
+// 脚本的位置参数
 var canshu string
 
-//sudo密码
+// sudo密码
 var sudo string
 
 // sshCmd represents the ssh command
@@ -26,7 +26,7 @@ var sshCmd = &cobra.Command{
 	Long:  `ssh远程工具`,
 }
 
-//远程执行bash命令
+// 远程执行bash命令
 var sshBash = &cobra.Command{
 	Use:   "bash",
 	Short: "remote exec bash(远程执行bash指令)",
@@ -36,6 +36,9 @@ var sshBash = &cobra.Command{
 			fmt.Println("❌ requires at one arguments: bash ")
 			os.Exit(1)
 		}
+		//声明切片用于记录执行成功和失败的主机
+		hostsuccess := make([]string, 0)
+		hosterr := make([]string, 0)
 		//判断是否指定主机组
 		if hostgroup != "" {
 			sshc, ok := jenkinsMod.Extend[hostgroup]
@@ -50,18 +53,25 @@ var sshBash = &cobra.Command{
 					//sshclient := ssh.SshClient()
 					//sftpc := jenkins.NewSftpC(sshclient)
 					if !ssh.Disbash {
+						//优先执行配置文件的cmd命令
 						if ssh.Cmd != "" {
 							err := ssh.Execbash(ssh.Cmd)
 							if err != nil {
-								log.Println(err)
+								//log.Println(err)
+								zaplog.Sugar.Errorf("主机: %s,执行命令出错: %v", ssh.Host, err)
+								hosterr = append(hosterr, ssh.Host)
 								return
 							}
+							hostsuccess = append(hostsuccess, ssh.Host)
 						} else {
 							err := ssh.Execbash(args[0])
 							if err != nil {
-								log.Println(err)
+								//log.Println(err)
+								zaplog.Sugar.Errorf("主机: %s,执行命令出错: %v", ssh.Host, err)
+								hosterr = append(hosterr, ssh.Host)
 								return
 							}
+							hostsuccess = append(hostsuccess, ssh.Host)
 						}
 					}
 				}(ssh)
@@ -78,20 +88,27 @@ var sshBash = &cobra.Command{
 						if ssh.Cmd != "" {
 							err := ssh.Execbash(ssh.Cmd)
 							if err != nil {
-								log.Println(err)
+								//log.Println(err)
+								zaplog.Sugar.Errorf("主机: %s,执行命令出错: %v", ssh.Host, err)
+								hosterr = append(hosterr, ssh.Host)
 								return
 							}
+							hostsuccess = append(hostsuccess, ssh.Host)
 						} else {
 							err := ssh.Execbash(args[0])
 							if err != nil {
-								log.Println(err)
+								//log.Println(err)
+								zaplog.Sugar.Errorf("主机: %s,执行命令出错: %v", ssh.Host, err)
+								hosterr = append(hosterr, ssh.Host)
 								return
 							}
+							hostsuccess = append(hostsuccess, ssh.Host)
 						}
 					}
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
+			zaplog.Sugar.Infof("统计: success: %d \t error: %d \t 错误主机：%v", len(hostsuccess), len(hosterr), hosterr)
 		}
 
 	},

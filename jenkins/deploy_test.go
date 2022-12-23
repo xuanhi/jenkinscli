@@ -7,12 +7,16 @@ import (
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 )
 
-// var sshC = NewSshC("root", "ADMIN12345", "192.168.100.34", "22")
-// var sshclient = sshC.SshClient()
-var sshC = NewSshC2("192.168.100.34", "22", "root")
-var sshclient = sshC.SshClientRsa()
+var sshC = NewSshC("root", "sqkjp#ssw0rd", "192.168.31.201", "22")
+
+var sshclient = sshC.SshClient()
+
+// var sshC = NewSshC2("192.168.100.34", "22", "root")
+// var sshclient = sshC.SshClientRsa()
 var sftpC = NewSftpC(sshclient)
 var localpath string = "/root/aaa"
 
@@ -66,10 +70,12 @@ func TestUploadFileRegepTest(t *testing.T) {
 }
 
 func TestExecbash(t *testing.T) {
-	sshC.Execbash("ps aux | grep java")
+	zaplog.InitLogger()
+	sshC.Execbash("date")
 }
 
 func TestExecTask(t *testing.T) {
+	zaplog.InitLogger()
 	sftpC.ExecTask("/root/test.sh", "/root", "", "")
 }
 

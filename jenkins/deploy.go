@@ -16,14 +16,15 @@ import (
 	"time"
 
 	"github.com/pkg/sftp"
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 	"golang.org/x/crypto/ssh"
 )
 
 const (
-	xx string = " ------------------- "
+	xx string = "==>"
 )
 
-//保存了ssh连接的基本信息
+// 保存了ssh连接的基本信息
 type SshC struct {
 	User       string        `mapstructure:"User"`
 	Password   string        `mapstructure:"Password"`
@@ -43,7 +44,7 @@ type SftpC struct {
 	Client *sftp.Client
 }
 
-//初始化SshC对象
+// 初始化SshC对象
 func NewSshC(user, password, host, port string) *SshC {
 	return &SshC{
 		User:     user,
@@ -54,7 +55,7 @@ func NewSshC(user, password, host, port string) *SshC {
 	}
 }
 
-//初始化SshC对象
+// 初始化SshC对象
 func NewSshC2(host, port, user string) *SshC {
 	return &SshC{
 		Host: host,
@@ -63,7 +64,7 @@ func NewSshC2(host, port, user string) *SshC {
 	}
 }
 
-//创建一个sshclient客户端句柄
+// 创建一个sshclient客户端句柄
 func (s *SshC) SshClient() *ssh.Client {
 	if s.Timeout == 0 {
 		s.Timeout = 10 * time.Second
@@ -87,7 +88,7 @@ func (s *SshC) SshClient() *ssh.Client {
 	return sshClient
 }
 
-//通过密钥创建一个sshclient客户端句柄
+// 通过密钥创建一个sshclient客户端句柄
 func (s *SshC) SshClientRsa() *ssh.Client {
 	if s.Timeout == 0 {
 		s.Timeout = 10 * time.Second
@@ -130,7 +131,7 @@ func (s *SshC) SshClientRsa() *ssh.Client {
 	return client
 }
 
-//SshClient 和SshClientRsa 两个方法合为一个
+// SshClient 和SshClientRsa 两个方法合为一个
 func (s *SshC) SshClientRsaAndSshClient() *ssh.Client {
 	if s.Password == "" {
 		return s.SshClientRsa()
@@ -139,7 +140,7 @@ func (s *SshC) SshClientRsaAndSshClient() *ssh.Client {
 
 }
 
-//远程执行bash命令
+// 远程执行bash命令
 func (s *SshC) Execbash(cmd string) error {
 	//client := s.SshClient()
 	client := s.SshClientRsaAndSshClient()
@@ -150,18 +151,25 @@ func (s *SshC) Execbash(cmd string) error {
 		return err
 	}
 	defer session.Close()
-	var b bytes.Buffer
-	session.Stdout = &b
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	session.Stdout = &stdout
+	session.Stderr = &stderr
 	if err := session.Run(fmt.Sprintf("/usr/bin/bash -c \"%s\"", cmd)); err != nil {
-		log.Println("Failed to run: " + err.Error())
+		//log.Println("Failed to run: " + err.Error())
+		//	zaplog.Sugar.Errorw("exec bash remote server failed!", "host", client.RemoteAddr().String(), "stderr", stderr.String())
+		//zaplog.Sugar.Errorf("status [FAILED] host [%s] stderr:\n %v", client.RemoteAddr().String(), stderr.String())
+		zaplog.Sugar.Errorf("status \033[1;31;40m[FAILED]\033[0m  host \033[1;35;40m [%s]\033[0m  stdout:\n\n %v\n", client.RemoteAddr().String(), stderr.String())
 		return err
 	}
-	log.Printf("%sremote host:%s exec bash remote server finished!", xx, client.RemoteAddr().String())
-	fmt.Println(b.String())
+	//log.Printf("%sremote host:%s exec bash remote server finished!", xx, client.RemoteAddr().String())
+	zaplog.Sugar.Infof("status \033[1;32;40m[SUCCESS]\033[0m  host \033[1;35;40m [%s]\033[0m  stdout:\n\n %v\n\n", client.RemoteAddr().String(), stdout.String())
+
+	//fmt.Println(b.String())
 	return nil
 }
 
-//初始化SftpC对象 同时创建了sftpclient 客户端句柄
+// 初始化SftpC对象 同时创建了sftpclient 客户端句柄
 func NewSftpC(sshClient *ssh.Client) *SftpC {
 	sftpClient, err := sftp.NewClient(sshClient)
 	if err != nil {
@@ -176,7 +184,7 @@ func NewSftpC(sshClient *ssh.Client) *SftpC {
 	}
 }
 
-//创建一个sftpclient客户端句柄
+// 创建一个sftpclient客户端句柄
 func (f *SftpC) SftpClient() {
 	sftpClient, err := sftp.NewClient(f.SshClient)
 	if err != nil {
@@ -185,7 +193,7 @@ func (f *SftpC) SftpClient() {
 	f.Client = sftpClient
 }
 
-//远程执行sh脚本
+// 远程执行sh脚本
 func (f *SftpC) ExecTask(localFilePath, remoteFilePath, arg, sudo string) error {
 	// err := os.Chmod(localFilePath, 0755)
 	// if err != nil {
@@ -226,7 +234,7 @@ func (f *SftpC) ExecTask(localFilePath, remoteFilePath, arg, sudo string) error 
 
 }
 
-//上传文件 指定文件路径到远程目录下
+// 上传文件 指定文件路径到远程目录下
 func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) error {
 	srcFile, err := os.Open(localFilePath)
 	if err != nil {
@@ -266,7 +274,7 @@ func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) error {
 	return nil
 }
 
-//用于模板动态生成文件再上传至远端服务器
+// 用于模板动态生成文件再上传至远端服务器
 func (f *SftpC) TmplandUploadFile(infilepath, outfilepath string, mod uint32, data map[string]string) error {
 	file, err := ioutil.ReadFile(infilepath)
 	if err != nil {
@@ -285,7 +293,7 @@ func (f *SftpC) TmplandUploadFile(infilepath, outfilepath string, mod uint32, da
 	return err
 }
 
-//使用缓存上传文件 指定文件路径到远程目录下
+// 使用缓存上传文件 指定文件路径到远程目录下
 func (f *SftpC) UploadFilebuf(localFilePath, remoteFilePath string) error {
 	srcFile, err := os.Open(localFilePath)
 	if err != nil {
@@ -336,7 +344,7 @@ func (f *SftpC) UploadFilebuf(localFilePath, remoteFilePath string) error {
 	return nil
 }
 
-//上传目录 上传本地目录下所有文件到远程目录下，不会将指定目录的父目录上传到远程目录下，只会上传内容
+// 上传目录 上传本地目录下所有文件到远程目录下，不会将指定目录的父目录上传到远程目录下，只会上传内容
 func (f *SftpC) UploadDirectory(localPath string, remotePath string) error {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
@@ -362,7 +370,7 @@ func (f *SftpC) UploadDirectory(localPath string, remotePath string) error {
 	return nil
 }
 
-//下载文件 指定本地目录，指定远程文件下载目录和文件
+// 下载文件 指定本地目录，指定远程文件下载目录和文件
 func (f *SftpC) DownLoadFile(localpath, remotepath string) error {
 	srcFile, err := f.Client.Open(remotepath)
 	if err != nil {
@@ -389,8 +397,8 @@ func (f *SftpC) DownLoadFile(localpath, remotepath string) error {
 	return nil
 }
 
-//用于多线程下载文件 指定本地目录，指定远程文件下载目录和文件
-//下载的文件内容放在会以远程ip自动创建目录里
+// 用于多线程下载文件 指定本地目录，指定远程文件下载目录和文件
+// 下载的文件内容放在会以远程ip自动创建目录里
 func (f *SftpC) DownLoadFileP(localpath, remotepath string) {
 	srcFile, err := f.Client.Open(remotepath)
 	if err != nil {
@@ -419,7 +427,7 @@ func (f *SftpC) DownLoadFileP(localpath, remotepath string) {
 	log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), remotepath)
 }
 
-//下载目录，将远端目录下载到本地目录下
+// 下载目录，将远端目录下载到本地目录下
 func (f *SftpC) DownLoadDir(localpath, remotepath string) error {
 	remotefiles, err := f.Client.ReadDir(remotepath)
 	if err != nil {
@@ -440,7 +448,7 @@ func (f *SftpC) DownLoadDir(localpath, remotepath string) error {
 	return nil
 }
 
-//给一个目录，用正则筛选目录下的文件然后上传到远程主机上
+// 给一个目录，用正则筛选目录下的文件然后上传到远程主机上
 func (f *SftpC) UploadFileRegep(localPath, remoteFilePath, reg string) error {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
@@ -461,7 +469,7 @@ func (f *SftpC) UploadFileRegep(localPath, remoteFilePath, reg string) error {
 	return nil
 }
 
-//测试正则表达式的接口
+// 测试正则表达式的接口
 func UploadFileRegepTest(localPath, reg string) {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
@@ -476,7 +484,7 @@ func UploadFileRegepTest(localPath, reg string) {
 	}
 }
 
-//判断路径是否存在和是目录
+// 判断路径是否存在和是目录
 func PathExists(path string) bool {
 	s, err := os.Stat(path)
 	if err != nil {
@@ -487,7 +495,7 @@ func PathExists(path string) bool {
 
 }
 
-//正则匹配 (?U)非贪婪模式
+// 正则匹配 (?U)非贪婪模式
 func MatchFile(reg, name string) bool {
 	myRegex, err := regexp.Compile(reg)
 	if err != nil {
@@ -496,7 +504,7 @@ func MatchFile(reg, name string) bool {
 	return myRegex.MatchString(name)
 }
 
-//正则匹配 key:vaule 形式用于校验数据
+// 正则匹配 key:vaule 形式用于校验数据
 func MapFormat(name string) bool {
 	myRegex, err := regexp.Compile(".*:.*")
 	if err != nil {
@@ -506,7 +514,7 @@ func MapFormat(name string) bool {
 
 }
 
-//参数构建传入字符串处理
+// 参数构建传入字符串处理
 func ArgstoMap(args []string) map[string]string {
 	argmap := make(map[string]string)
 	//var argmap map[string]string
@@ -532,7 +540,7 @@ func ArgstoMap(args []string) map[string]string {
 	return argmap
 }
 
-//动态模板文件方法，给一个输出类型和map参数
+// 动态模板文件方法，给一个输出类型和map参数
 func TextTemplate(infilepath, outfilepath string, data map[string]string) {
 	f, err := ioutil.ReadFile(infilepath)
 	if err != nil {

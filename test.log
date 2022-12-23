@@ -1,0 +1,13 @@
+2022-12-23T16:56:54.616+0800	[31mERROR[0m	cmd/ssh.go:98	status [1;31;40m[FAILED][0m  host [1;35;40m [192.168.31.201:22][0m  stdout:
+
+ /usr/bin/bash: date1: command not found
+
+
+2022-12-23T16:56:54.617+0800	[31mERROR[0m	runtime/asm_amd64.s:1594	主机: 192.168.31.201,执行命令出错: Process exited with status 127
+2022-12-23T16:56:54.642+0800	[31mERROR[0m	cmd/ssh.go:98	status [1;31;40m[FAILED][0m  host [1;35;40m [192.168.31.200:22][0m  stdout:
+
+ /usr/bin/bash: date1: command not found
+
+
+2022-12-23T16:56:54.642+0800	[31mERROR[0m	runtime/asm_amd64.s:1594	主机: 192.168.31.200,执行命令出错: Process exited with status 127
+2022-12-23T16:56:54.642+0800	[34mINFO[0m	cobra@v1.3.0/command.go:860	统计: success: 0 	 error: 2 	 错误主机：[192.168.31.201 192.168.31.200]
