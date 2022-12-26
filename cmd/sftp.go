@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -13,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/xuanhi/jenkinscli/jenkins"
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 )
 
 var (
@@ -40,25 +40,30 @@ var sftpCmd = &cobra.Command{
 	Long:  `Upload or download files or folders to a remote host 向远程主机上传或下载文件或文件夹`,
 }
 
-//上传文件数据
+// 上传文件数据
 var sftpUpFile = &cobra.Command{
 	Use:   "upfile",
 	Short: "Upload files to a remote host(上传文件)",
 	Long:  `Upload files to a remote host  向远程主机上传文件，-t是远程路径,参数为本地路径`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
-			fmt.Println("❌ requires at one arguments: Local Path")
+			//fmt.Println("❌ requires at one arguments: Local Path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: Local Path")
 			os.Exit(1)
 		}
 		if target == "" {
-			fmt.Println("❌ requires at one arguments: -t target remote path")
+			//fmt.Println("❌ requires at one arguments: -t target remote path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: -t target remote path")
 			os.Exit(1)
 		}
+		//声明切片用于记录执行成功和失败的主机
+		hostsuccess := make([]string, 0)
+		hosterr := make([]string, 0)
 		//选择主机组
 		if hostgroup != "" {
 			sshc, ok := jenkinsMod.Extend[hostgroup]
 			if !ok {
-				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				zaplog.Sugar.Errorln("没有找到主机组，请检查是否配置这个主机组")
 				return
 			}
 			for _, ssh := range sshc {
@@ -72,9 +77,11 @@ var sftpUpFile = &cobra.Command{
 					defer sftpc.Client.Close()
 					err := sftpc.UploadFile(args[0], target)
 					if err != nil {
-						log.Println(err)
+						zaplog.Sugar.Errorf("文件上传错误: %v", err)
+						hosterr = append(hosterr, ssh.Host)
 						return
 					}
+					hostsuccess = append(hostsuccess, ssh.Host)
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
@@ -90,18 +97,25 @@ var sftpUpFile = &cobra.Command{
 					defer sftpc.Client.Close()
 					err := sftpc.UploadFile(args[0], target)
 					if err != nil {
-						log.Println(err)
+						zaplog.Sugar.Errorf("文件上传错误: %v", err)
+						hosterr = append(hosterr, ssh.Host)
 						return
 					}
+					hostsuccess = append(hostsuccess, ssh.Host)
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
 		}
 
+		zaplog.Sugar.Infof("主机统计: SUCCESS: %d \t ERROR: %d \t 遇错主机：%v", len(hostsuccess), len(hosterr), hosterr)
+		if len(hosterr) != 0 {
+			os.Exit(1)
+		}
+
 	},
 }
 
-//上传多个文件数据，使用正则表达式匹配
+// 上传多个文件数据，使用正则表达式匹配
 var sftpUpFileRegexp = &cobra.Command{
 	Use:   "upfilereg",
 	Short: "Upload files to a remote host use Regexp(上传多个文件，需要写正则表达式匹配)",
@@ -109,22 +123,26 @@ var sftpUpFileRegexp = &cobra.Command{
 	       用正则表达式RE2语法向远程主机上传多个文件,-t是远程路径,参数为本地路径`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
-			fmt.Println("❌ requires at one arguments: Local Path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: Local Path")
 			os.Exit(1)
 		}
 		if target == "" {
-			fmt.Println("❌ requires at one arguments: -t target remote path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: -t target remote path")
 			os.Exit(1)
 		}
 		if upfilRegexp == "" {
-			fmt.Println("❌ requires at one arguments: -R Regular expressions")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: -R Regular expressions")
 			os.Exit(1)
 		}
+		//声明切片用于记录执行成功和失败的主机
+		hostsuccess := make([]string, 0)
+		hosterr := make([]string, 0)
 		//选择主机组
 		if hostgroup != "" {
 			sshc, ok := jenkinsMod.Extend[hostgroup]
 			if !ok {
-				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				//log.Println("没有找到主机组，请检查是否配置这个主机组")
+				zaplog.Sugar.Errorln("没有找到主机组，请检查是否配置这个主机组")
 				return
 			}
 			for _, ssh := range sshc {
@@ -138,9 +156,12 @@ var sftpUpFileRegexp = &cobra.Command{
 					defer sftpc.Client.Close()
 					err := sftpc.UploadFileRegep(args[0], target, upfilRegexp)
 					if err != nil {
-						log.Println("read dir list fail ", err)
+						//log.Println("read dir list fail ", err)
+						zaplog.Sugar.Errorf("上传文件错误:%v", err)
+						hosterr = append(hosterr, ssh.Host)
 						return
 					}
+					hostsuccess = append(hostsuccess, ssh.Host)
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
@@ -156,29 +177,35 @@ var sftpUpFileRegexp = &cobra.Command{
 					defer sftpc.Client.Close()
 					err := sftpc.UploadFileRegep(args[0], target, upfilRegexp)
 					if err != nil {
-						log.Println("read dir list fail ", err)
+						//log.Println("read dir list fail ", err)
+						zaplog.Sugar.Errorf("上传文件错误:%v", err)
+						hosterr = append(hosterr, ssh.Host)
 						return
 					}
+					hostsuccess = append(hostsuccess, ssh.Host)
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
 		}
-
+		zaplog.Sugar.Infof("主机统计: SUCCESS: %d \t ERROR: %d \t 遇错主机：%v", len(hostsuccess), len(hosterr), hosterr)
+		if len(hosterr) != 0 {
+			os.Exit(1)
+		}
 	},
 }
 
-//测试正则表达是的工具，经常与上传文件配合使用
+// 测试正则表达是的工具，经常与上传文件配合使用
 var Regexptest = &cobra.Command{
 	Use:   "regexp",
 	Short: "测试正则表达式语法用于配合上传文件",
 	Long:  `指定本地目录，通过-R正则表达是来筛选匹配的文件,用于配合上传文件upfilereg进行测试的正则语法检验工具`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
-			fmt.Println("❌ requires at one arguments: Local Path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: Local Path")
 			os.Exit(1)
 		}
 		if upfilRegexp == "" {
-			fmt.Println("❌ requires at one arguments: -R Regular expressions")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: -R Regular expressions")
 			os.Exit(1)
 		}
 
@@ -187,7 +214,7 @@ var Regexptest = &cobra.Command{
 	},
 }
 
-//上传目录数据
+// 上传目录数据
 var sftpUpDir = &cobra.Command{
 	Use:   "updir",
 	Short: "Upload  folders to a remote host(上传文件夹)",
@@ -254,7 +281,7 @@ var sftpUpDir = &cobra.Command{
 	},
 }
 
-//下载文件数据
+// 下载文件数据
 var sftpDownFile = &cobra.Command{
 	Use:   "downfile",
 	Short: "download files to a remote host(下载文件)",
@@ -353,7 +380,7 @@ var sftpDownFile = &cobra.Command{
 	},
 }
 
-//下载目录数据
+// 下载目录数据
 var sftpDownDir = &cobra.Command{
 	Use:   "downdir",
 	Short: "download folders to a remote host(下载文件夹)",

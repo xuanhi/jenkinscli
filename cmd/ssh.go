@@ -33,7 +33,7 @@ var sshBash = &cobra.Command{
 	Long:  `ssh远程工具`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
-			fmt.Println("❌ requires at one arguments: bash ")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: bash ")
 			os.Exit(1)
 		}
 		//声明切片用于记录执行成功和失败的主机
@@ -43,7 +43,8 @@ var sshBash = &cobra.Command{
 		if hostgroup != "" {
 			sshc, ok := jenkinsMod.Extend[hostgroup]
 			if !ok {
-				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				//log.Println("没有找到主机组，请检查是否配置这个主机组")
+				zaplog.Sugar.Errorln("没有找到主机组，请检查是否配置这个主机组")
 				return
 			}
 			for _, ssh := range sshc {
@@ -108,7 +109,12 @@ var sshBash = &cobra.Command{
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
-			zaplog.Sugar.Infof("统计: success: %d \t error: %d \t 错误主机：%v", len(hostsuccess), len(hosterr), hosterr)
+
+		}
+
+		zaplog.Sugar.Infof("主机统计: SUCCESS: %d \t ERROR: %d \t 遇错主机：%v", len(hostsuccess), len(hosterr), hosterr)
+		if len(hosterr) != 0 {
+			os.Exit(1)
 		}
 
 	},

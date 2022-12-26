@@ -1,13 +1,21 @@
-2022-12-23T16:56:54.616+0800	[31mERROR[0m	cmd/ssh.go:98	status [1;31;40m[FAILED][0m  host [1;35;40m [192.168.31.201:22][0m  stdout:
+2022-12-26T16:28:25.715+0800	[33mWARN[0m	cobra@v1.3.0/command.go:886	❌ jenkins server unreachable: 
+2022-12-26T16:28:25.715+0800	[33mWARN[0m	cobra@v1.3.0/command.go:886	连接Jenkins出错,请检查配置文件，忽略程序继续执行: Get "/api/json": unsupported protocol scheme ""
+2022-12-26T16:28:25.941+0800	[34mINFO[0m	cmd/sftp.go:178	匹配的文件: a.txt 全路径: /root/aaa/a.txt
+2022-12-26T16:28:25.946+0800	[34mINFO[0m	jenkins/deploy.go:474	host: [0;35m[192.168.31.201:22][0m time [0;36m[4.348654ms][0m status [0;32m[/root/aaa/a.txt copy finished!][0m
 
- /usr/bin/bash: date1: command not found
+2022-12-26T16:28:25.947+0800	[34mINFO[0m	cmd/sftp.go:178	匹配的文件: b.txt 全路径: /root/aaa/b.txt
+2022-12-26T16:28:25.949+0800	[34mINFO[0m	jenkins/deploy.go:474	host: [0;35m[192.168.31.201:22][0m time [0;36m[1.984574ms][0m status [0;32m[/root/aaa/b.txt copy finished!][0m
 
+2022-12-26T16:28:25.950+0800	[34mINFO[0m	cmd/sftp.go:178	匹配的文件: c.txt 全路径: /root/aaa/c.txt
+2022-12-26T16:28:25.952+0800	[34mINFO[0m	jenkins/deploy.go:474	host: [0;35m[192.168.31.201:22][0m time [0;36m[1.483561ms][0m status [0;32m[/root/aaa/c.txt copy finished!][0m
 
-2022-12-23T16:56:54.617+0800	[31mERROR[0m	runtime/asm_amd64.s:1594	主机: 192.168.31.201,执行命令出错: Process exited with status 127
-2022-12-23T16:56:54.642+0800	[31mERROR[0m	cmd/ssh.go:98	status [1;31;40m[FAILED][0m  host [1;35;40m [192.168.31.200:22][0m  stdout:
+2022-12-26T16:28:25.990+0800	[34mINFO[0m	cmd/sftp.go:178	匹配的文件: a.txt 全路径: /root/aaa/a.txt
+2022-12-26T16:28:25.992+0800	[34mINFO[0m	jenkins/deploy.go:474	host: [0;35m[192.168.31.200:22][0m time [0;36m[1.86827ms][0m status [0;32m[/root/aaa/a.txt copy finished!][0m
 
- /usr/bin/bash: date1: command not found
+2022-12-26T16:28:25.992+0800	[34mINFO[0m	cmd/sftp.go:178	匹配的文件: b.txt 全路径: /root/aaa/b.txt
+2022-12-26T16:28:25.994+0800	[34mINFO[0m	jenkins/deploy.go:474	host: [0;35m[192.168.31.200:22][0m time [0;36m[1.347059ms][0m status [0;32m[/root/aaa/b.txt copy finished!][0m
 
+2022-12-26T16:28:25.994+0800	[34mINFO[0m	cmd/sftp.go:178	匹配的文件: c.txt 全路径: /root/aaa/c.txt
+2022-12-26T16:28:25.995+0800	[34mINFO[0m	jenkins/deploy.go:474	host: [0;35m[192.168.31.200:22][0m time [0;36m[1.376198ms][0m status [0;32m[/root/aaa/c.txt copy finished!][0m
 
-2022-12-23T16:56:54.642+0800	[31mERROR[0m	runtime/asm_amd64.s:1594	主机: 192.168.31.200,执行命令出错: Process exited with status 127
-2022-12-23T16:56:54.642+0800	[34mINFO[0m	cobra@v1.3.0/command.go:860	统计: success: 0 	 error: 2 	 错误主机：[192.168.31.201 192.168.31.200]
+2022-12-26T16:28:25.997+0800	[34mINFO[0m	cobra@v1.3.0/command.go:860	统计: SUCCESS: 2 	 ERROR: 0 	 遇错主机：[]

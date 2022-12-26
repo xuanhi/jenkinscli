@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/pkg/sftp"
+	"github.com/xuanhi/jenkinscli/utils/color"
 	"github.com/xuanhi/jenkinscli/utils/zaplog"
 	"golang.org/x/crypto/ssh"
 )
@@ -159,12 +160,13 @@ func (s *SshC) Execbash(cmd string) error {
 		//log.Println("Failed to run: " + err.Error())
 		//	zaplog.Sugar.Errorw("exec bash remote server failed!", "host", client.RemoteAddr().String(), "stderr", stderr.String())
 		//zaplog.Sugar.Errorf("status [FAILED] host [%s] stderr:\n %v", client.RemoteAddr().String(), stderr.String())
-		zaplog.Sugar.Errorf("status \033[1;31;40m[FAILED]\033[0m  host \033[1;35;40m [%s]\033[0m  stdout:\n\n %v\n", client.RemoteAddr().String(), stderr.String())
+		//zaplog.Sugar.Errorf("status \033[1;31;40m[FAILED]\033[0m  host \033[1;35;40m [%s]\033[0m  stdout:\n\n %v\n", client.RemoteAddr().String(), stderr.String())
+		zaplog.Sugar.Errorf("status %s  host %s  stdout:\n\n %v\n", color.GreenB("FAILED"), color.PurpleB(client.RemoteAddr().String()), color.Red(stderr.String()))
 		return err
 	}
 	//log.Printf("%sremote host:%s exec bash remote server finished!", xx, client.RemoteAddr().String())
-	zaplog.Sugar.Infof("status \033[1;32;40m[SUCCESS]\033[0m  host \033[1;35;40m [%s]\033[0m  stdout:\n\n %v\n\n", client.RemoteAddr().String(), stdout.String())
-
+	//zaplog.Sugar.Infof("status \033[1;32;40m[SUCCESS]\033[0m  host \033[1;35;40m [%s]\033[0m  stdout:\n\n %v\n\n", client.RemoteAddr().String(), stdout.String())
+	zaplog.Sugar.Infof("status %s  host %s stdout:\n\n %v\n\n", color.GreenB("SUCCESS"), color.PurpleB(client.RemoteAddr().String()), stdout.String())
 	//fmt.Println(b.String())
 	return nil
 }
@@ -236,31 +238,35 @@ func (f *SftpC) ExecTask(localFilePath, remoteFilePath, arg, sudo string) error 
 
 // 上传文件 指定文件路径到远程目录下
 func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) error {
+	start := time.Now()
 	srcFile, err := os.Open(localFilePath)
 	if err != nil {
-		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
+		zaplog.Sugar.Errorf("%s:上传文件有错误之打开文件错误\n", f.SshClient.RemoteAddr().String())
 		//	log.Println(err)
 		return err
 	}
 	defer srcFile.Close()
 	fs, err := os.Stat(localFilePath)
 	if err != nil {
-		log.Println("获取本地文件信息遇到错误：", err)
+		zaplog.Sugar.Errorln("获取本地文件信息遇到错误：", err)
 	}
 	var remoteFileName = path.Base(localFilePath)
 	dstFile, err := f.Client.Create(path.Join(remoteFilePath, remoteFileName))
-	dstFile.Chmod(fs.Mode())
 	if err != nil {
-		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
-		fmt.Println("sftpClient.Create error : ", path.Join(remoteFilePath, remoteFileName))
+		zaplog.Sugar.Errorf("%s:上传文件有错误之远程创建文件错误: %v 远程路径: %s\n", f.SshClient.RemoteAddr().String(), err, path.Join(remoteFilePath, remoteFileName))
+		//zaplog.Sugar.Errorln("sftpClient.Create error : ", path.Join(remoteFilePath, remoteFileName))
 		//	log.Println(err)
 		return err
+	}
+	err = dstFile.Chmod(fs.Mode())
+	if err != nil {
+		zaplog.Sugar.Errorf("设置权限遇到错误:%v", err)
 	}
 	defer dstFile.Close()
 	ff, err := ioutil.ReadAll(srcFile)
 	if err != nil {
-		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
-		fmt.Println("ReadAll error : ", localFilePath)
+		zaplog.Sugar.Errorf("%s:上传文件有错误之读取文件错误\n", f.SshClient.RemoteAddr().String())
+		zaplog.Sugar.Errorln("ReadAll error : ", localFilePath)
 		//	log.Println(err)
 		return err
 	}
@@ -270,7 +276,9 @@ func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) error {
 	//f.Client.Chmod(path.Join(remoteFilePath, remoteFileName), fs.Mode())
 
 	//log.Println(f.SshClient.RemoteAddr().String(),localFilePath," copy file to remote server finished!")
-	log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), localFilePath)
+	//log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), localFilePath)
+	elapsed := time.Since(start).String()
+	zaplog.Sugar.Infof("host: %s time %v status %s\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB(localFilePath+" copy finished!"))
 	return nil
 }
 
@@ -452,17 +460,22 @@ func (f *SftpC) DownLoadDir(localpath, remotepath string) error {
 func (f *SftpC) UploadFileRegep(localPath, remoteFilePath, reg string) error {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
-		log.Printf("%s:上传文件有错误\n", f.SshClient.RemoteAddr().String())
+		zaplog.Sugar.Errorf("%s:上传文件有错误之读取本地目录错误\n", f.SshClient.RemoteAddr().String())
 		//log.Println("read dir list fail ", err)
 		return err
 	}
 	for _, backupDir := range localFiles {
 		if !backupDir.IsDir() {
 			if MatchFile(reg, backupDir.Name()) {
-				log.Println("匹配的文件", backupDir.Name())
+				//log.Println("匹配的文件", backupDir.Name())
 				localFilePath := path.Join(localPath, backupDir.Name())
-				log.Println("匹配文件路径", localFilePath)
-				f.UploadFile(localFilePath, remoteFilePath)
+				//log.Println("匹配文件路径", localFilePath)
+				zaplog.Sugar.Infof("匹配的文件: %s 全路径: %s", backupDir.Name(), localFilePath)
+				err := f.UploadFile(localFilePath, remoteFilePath)
+				if err != nil {
+					zaplog.Sugar.Errorf("%s传输文件错误:%v", localFilePath, err)
+					break
+				}
 			}
 		}
 	}
@@ -473,12 +486,15 @@ func (f *SftpC) UploadFileRegep(localPath, remoteFilePath, reg string) error {
 func UploadFileRegepTest(localPath, reg string) {
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
-		log.Fatal("read dir list fail ", err)
+		//	log.Fatal("read dir list fail ", err)
+		zaplog.Sugar.Errorf("read dir list fail %v", err)
+		return
 	}
 	for _, backupDir := range localFiles {
 		if !backupDir.IsDir() {
 			if MatchFile(reg, backupDir.Name()) {
-				fmt.Println("匹配成功的文件：", backupDir.Name())
+				//	fmt.Println("匹配成功的文件：", backupDir.Name())
+				zaplog.Sugar.Infoln("匹配成功的文件：", backupDir.Name())
 			}
 		}
 	}

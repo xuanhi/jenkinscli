@@ -21,14 +21,15 @@ var sftpC = NewSftpC(sshclient)
 var localpath string = "/root/aaa"
 
 func TestUploadFile(t *testing.T) {
+	zaplog.InitLogger()
 	defer func() {
 		err := recover()
 		if err != nil {
-			t.Errorf("测试遇到错误")
+			t.Errorf("测试遇到错误:%v", err)
 		}
 	}()
 	fmt.Println(sftpC.Host)
-	sftpC.UploadFile("/root/asitcn-module-system-2.4.6.jar", "/root/test")
+	sftpC.UploadFile("/root/go1.19.3.linux-amd64.tar.gz", "/root/test")
 }
 func TestUploadFilebuf(t *testing.T) {
 	sftpC.UploadFilebuf("/root/asitcn-module-system-2.4.6.jar", "/root/test")
@@ -63,10 +64,12 @@ func TestDownLoadFileP(t *testing.T) {
 }
 
 func TestUploadFileRegep(t *testing.T) {
+	zaplog.InitLogger()
 	sftpC.UploadFileRegep("/root/aaa", "/root/test", ".*txt$")
 }
 func TestUploadFileRegepTest(t *testing.T) {
-	UploadFileRegepTest("/root/aaa", ".*jpg$")
+	zaplog.InitLogger()
+	UploadFileRegepTest("/root/aaa", ".*txt$")
 }
 
 func TestExecbash(t *testing.T) {

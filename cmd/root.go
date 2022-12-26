@@ -5,11 +5,11 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/xuanhi/jenkinscli/jenkins"
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -66,12 +66,12 @@ func initConfig() {
 	err = jenkinsMod.Init(config) //初始化jenkins对象
 	if err != nil {
 		if !immunity {
-			fmt.Println("❌ jenkins server unreachable: " + jenkinsMod.Server)
-			log.Println("连接Jenkins出错,退出程序：", err)
+			zaplog.Sugar.Warnln("❌ jenkins server unreachable: " + jenkinsMod.Server)
+			zaplog.Sugar.Errorln("连接Jenkins出错,请检查配置文件，退出程序：", err)
 			os.Exit(1)
 		} else {
-			log.Println("❌ jenkins server unreachable: " + jenkinsMod.Server)
-			log.Println("连接Jenkins出错,忽略程序继续执行:", err)
+			zaplog.Sugar.Warnln("❌ jenkins server unreachable: " + jenkinsMod.Server)
+			zaplog.Sugar.Warnln("连接Jenkins出错,请检查配置文件，忽略程序继续执行:", err)
 		}
 
 	}
