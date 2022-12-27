@@ -36,15 +36,18 @@ func TestUploadFilebuf(t *testing.T) {
 }
 
 func TestUploadDirectory(t *testing.T) {
-	sftpC.UploadDirectory("/root/hello", "/root/test")
+	zaplog.InitLogger()
+	sftpC.UploadDirectory("/root/aaa", "/root/test")
 }
 
 func TestDownLoadFile(t *testing.T) {
+	zaplog.InitLogger()
 	fmt.Println(sftpC.Host)
-	sftpC.DownLoadFile("/root", "/root/2.jpg")
+	sftpC.DownLoadFile("/root", "/root/test/a.txt")
 }
 
 func TestDownLoadDir(t *testing.T) {
+	zaplog.InitLogger()
 	sftpC.DownLoadDir("/root/aaa", "/root/test")
 }
 
@@ -74,12 +77,17 @@ func TestUploadFileRegepTest(t *testing.T) {
 
 func TestExecbash(t *testing.T) {
 	zaplog.InitLogger()
-	sshC.Execbash("date")
+	sshC.Execbash("systemctl status nginx", "")
 }
 
 func TestExecTask(t *testing.T) {
 	zaplog.InitLogger()
-	sftpC.ExecTask("/root/test.sh", "/root", "", "")
+	sshC := NewSshC("xuanhi", "xianhuaihai", "192.168.20.129", "22")
+
+	sshclient := sshC.SshClient()
+
+	sftpC := NewSftpC(sshclient)
+	sftpC.ExecTask("/root/test.sh", "/xuanhi", "", "")
 }
 
 func TestMapFormat(t *testing.T) {

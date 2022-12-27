@@ -4,8 +4,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -56,7 +54,7 @@ var sshBash = &cobra.Command{
 					if !ssh.Disbash {
 						//优先执行配置文件的cmd命令
 						if ssh.Cmd != "" {
-							err := ssh.Execbash(ssh.Cmd)
+							err := ssh.Execbash(ssh.Cmd, sudo)
 							if err != nil {
 								//log.Println(err)
 								zaplog.Sugar.Errorf("主机: %s,执行命令出错: %v", ssh.Host, err)
@@ -65,7 +63,7 @@ var sshBash = &cobra.Command{
 							}
 							hostsuccess = append(hostsuccess, ssh.Host)
 						} else {
-							err := ssh.Execbash(args[0])
+							err := ssh.Execbash(args[0], sudo)
 							if err != nil {
 								//log.Println(err)
 								zaplog.Sugar.Errorf("主机: %s,执行命令出错: %v", ssh.Host, err)
@@ -75,6 +73,7 @@ var sshBash = &cobra.Command{
 							hostsuccess = append(hostsuccess, ssh.Host)
 						}
 					}
+
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
@@ -87,7 +86,7 @@ var sshBash = &cobra.Command{
 					//sftpc := jenkins.NewSftpC(sshclient)
 					if !ssh.Disbash {
 						if ssh.Cmd != "" {
-							err := ssh.Execbash(ssh.Cmd)
+							err := ssh.Execbash(ssh.Cmd, sudo)
 							if err != nil {
 								//log.Println(err)
 								zaplog.Sugar.Errorf("主机: %s,执行命令出错: %v", ssh.Host, err)
@@ -96,7 +95,7 @@ var sshBash = &cobra.Command{
 							}
 							hostsuccess = append(hostsuccess, ssh.Host)
 						} else {
-							err := ssh.Execbash(args[0])
+							err := ssh.Execbash(args[0], sudo)
 							if err != nil {
 								//log.Println(err)
 								zaplog.Sugar.Errorf("主机: %s,执行命令出错: %v", ssh.Host, err)
@@ -111,12 +110,7 @@ var sshBash = &cobra.Command{
 			jenkinsMod.Wg.Wait()
 
 		}
-
-		zaplog.Sugar.Infof("主机统计: SUCCESS: %d \t ERROR: %d \t 遇错主机：%v", len(hostsuccess), len(hosterr), hosterr)
-		if len(hosterr) != 0 {
-			os.Exit(1)
-		}
-
+		jenkins.Tongji(hosterr, hostsuccess)
 	},
 }
 
@@ -126,17 +120,20 @@ var sshTask = &cobra.Command{
 	Long:  `ssh远程执行脚本`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
-			fmt.Println("❌ requires at one arguments: local file path ")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: local file path ")
 			os.Exit(1)
 		}
 		if target == "" {
-			fmt.Println("❌ requires at one arguments: -t target remote path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: -t target remote path")
 			os.Exit(1)
 		}
+		//声明切片用于记录执行成功和失败的主机
+		hostsuccess := make([]string, 0)
+		hosterr := make([]string, 0)
 		if hostgroup != "" {
 			sshc, ok := jenkinsMod.Extend[hostgroup]
 			if !ok {
-				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				zaplog.Sugar.Errorln("没有找到主机组，请检查是否配置这个主机组")
 				return
 			}
 			for _, ssh := range sshc {
@@ -148,9 +145,11 @@ var sshTask = &cobra.Command{
 					sftpc := jenkins.NewSftpC(sshclient)
 					err := sftpc.ExecTask(args[0], target, canshu, sudo)
 					if err != nil {
-						log.Println(err)
+						zaplog.Sugar.Errorf("远程执行脚本失败:%v", err)
+						hosterr = append(hosterr, ssh.Host)
 						return
 					}
+					hostsuccess = append(hostsuccess, ssh.Host)
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
@@ -164,13 +163,16 @@ var sshTask = &cobra.Command{
 					sftpc := jenkins.NewSftpC(sshclient)
 					err := sftpc.ExecTask(args[0], target, canshu, sudo)
 					if err != nil {
-						log.Println(err)
+						zaplog.Sugar.Errorf("远程执行脚本失败:%v", err)
+						hosterr = append(hosterr, ssh.Host)
 						return
 					}
+					hostsuccess = append(hostsuccess, ssh.Host)
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
 		}
+		jenkins.Tongji(hosterr, hostsuccess)
 
 	},
 }
@@ -178,6 +180,7 @@ var sshTask = &cobra.Command{
 func init() {
 	sshCmd.PersistentFlags().StringVarP(&target, "target", "t", "", "Specify a target path or remote path(指定远程目录)")
 	sshCmd.PersistentFlags().StringVarP(&hostgroup, "hosts", "H", "", "Select the host group you want to activate(选择主机组,不选择默认用Sshs组)")
+	sshBash.Flags().StringVarP(&sudo, "sudo", "s", "", "Specify the sudo password when executing the script(对于ubuntu系统执行脚本时指定sudo密码)")
 	sshTask.Flags().StringVarP(&canshu, "canshu", "c", "", "Specify location parameters for the script(为bash脚本键入位置参数,是一个字符串类型多个参数用空格隔开)")
 	sshTask.Flags().StringVarP(&sudo, "sudo", "s", "", "Specify the sudo password when executing the script(对于ubuntu系统执行脚本时指定sudo密码)")
 

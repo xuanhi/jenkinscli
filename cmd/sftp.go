@@ -4,8 +4,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-	"log"
 	"os"
 	pathx "path"
 	"strings"
@@ -107,10 +105,7 @@ var sftpUpFile = &cobra.Command{
 			jenkinsMod.Wg.Wait()
 		}
 
-		zaplog.Sugar.Infof("主机统计: SUCCESS: %d \t ERROR: %d \t 遇错主机：%v", len(hostsuccess), len(hosterr), hosterr)
-		if len(hosterr) != 0 {
-			os.Exit(1)
-		}
+		jenkins.Tongji(hosterr, hostsuccess)
 
 	},
 }
@@ -187,14 +182,11 @@ var sftpUpFileRegexp = &cobra.Command{
 			}
 			jenkinsMod.Wg.Wait()
 		}
-		zaplog.Sugar.Infof("主机统计: SUCCESS: %d \t ERROR: %d \t 遇错主机：%v", len(hostsuccess), len(hosterr), hosterr)
-		if len(hosterr) != 0 {
-			os.Exit(1)
-		}
+		jenkins.Tongji(hosterr, hostsuccess)
 	},
 }
 
-// 测试正则表达是的工具，经常与上传文件配合使用
+// 测试正则表达式的工具，经常与上传文件配合使用
 var Regexptest = &cobra.Command{
 	Use:   "regexp",
 	Short: "测试正则表达式语法用于配合上传文件",
@@ -218,25 +210,28 @@ var Regexptest = &cobra.Command{
 var sftpUpDir = &cobra.Command{
 	Use:   "updir",
 	Short: "Upload  folders to a remote host(上传文件夹)",
-	Long:  `Upload  folders to a remote host  向远程主机上传文件夹，-t是远程路径,参数为本地路径`,
+	Long:  `Upload  folders to a remote host  向远程主机上传文件夹,-t是远程路径,参数为本地路径,不会创建父目录的仅上传内容`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
-			fmt.Println("❌ requires at one arguments: Local Path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: Local Path")
 			os.Exit(1)
 		}
 		if target == "" {
-			fmt.Println("❌ requires at one arguments: -t target remote path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: -t target remote path")
 			os.Exit(1)
 		}
 		if !jenkins.PathExists(args[0]) {
-			log.Println("本机目录不存在或路径不是目录")
+			zaplog.Sugar.Errorln("本机目录不存在或路径不是目录")
 			os.Exit(1)
 		}
+		//声明切片用于记录执行成功和失败的主机
+		hostsuccess := make([]string, 0)
+		hosterr := make([]string, 0)
 		//选择主机组
 		if hostgroup != "" {
 			sshc, ok := jenkinsMod.Extend[hostgroup]
 			if !ok {
-				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				zaplog.Sugar.Errorln("没有找到主机组，请检查是否配置这个主机组")
 				return
 			}
 			for _, ssh := range sshc {
@@ -250,9 +245,12 @@ var sftpUpDir = &cobra.Command{
 					defer sftpc.Client.Close()
 					err := sftpc.UploadDirectory(args[0], target)
 					if err != nil {
-						log.Println("read dir list fail ", err)
+						//	log.Println("read dir list fail ", err)
+						zaplog.Sugar.Errorf("上传目录遇到错误：%v", err)
+						hosterr = append(hosterr, ssh.Host)
 						return
 					}
+					hostsuccess = append(hostsuccess, ssh.Host)
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
@@ -269,15 +267,18 @@ var sftpUpDir = &cobra.Command{
 					defer sftpc.Client.Close()
 					err := sftpc.UploadDirectory(args[0], target)
 					if err != nil {
-						log.Println("read dir list fail ", err)
+						//log.Println("read dir list fail ", err)
+						zaplog.Sugar.Errorf("上传目录遇到错误：%v", err)
+						hosterr = append(hosterr, ssh.Host)
 						return
 					}
+					hostsuccess = append(hostsuccess, ssh.Host)
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
 
 		}
-
+		jenkins.Tongji(hosterr, hostsuccess)
 	},
 }
 
@@ -288,25 +289,28 @@ var sftpDownFile = &cobra.Command{
 	Long:  `download files to a remote host  向远程主机下载文件，-t是远程路径,参数为本地路径`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
-			fmt.Println("❌ requires at one arguments: Local Path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: Local Path")
 			os.Exit(1)
 		}
 		if target == "" {
-			fmt.Println("❌ requires at one arguments: -t target remote path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: -t target remote path")
 			os.Exit(1)
 		}
 		if !jenkins.PathExists(args[0]) {
-			log.Println("本机目录不存在或路径不是目录")
+			zaplog.Sugar.Errorln("本机目录不存在或路径不是目录")
 			os.Exit(1)
 		}
+		//声明切片用于记录执行成功和失败的主机
+		hostsuccess := make([]string, 0)
+		hosterr := make([]string, 0)
 		//选择主机组
 		if hostgroup != "" {
 			sshc, ok := jenkinsMod.Extend[hostgroup]
 			if !ok {
-				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				zaplog.Sugar.Errorln("没有找到主机组，请检查是否配置这个主机组")
 				return
 			}
-			fmt.Println("主机数量：", len(sshc))
+			zaplog.Sugar.Infoln("主机数量：", len(sshc))
 			if len(sshc) != 1 {
 				for _, ssh := range sshc {
 					jenkinsMod.Wg.Add(1)
@@ -323,25 +327,34 @@ var sftpDownFile = &cobra.Command{
 						if err != nil {
 							err := os.Mkdir(localIPpath, 0755)
 							if err != nil {
-								log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
-								log.Fatal(err)
+								zaplog.Sugar.Errorf("%s:创建ip目录有错误:%v\n", sftpc.SshClient.RemoteAddr().String(), err)
+								hosterr = append(hosterr, ssh.Host)
+								return
 							}
 						}
 						err = sftpc.DownLoadFile(localIPpath, target)
 						if err != nil {
-							log.Println(err)
+							zaplog.Sugar.Errorf("下载文件错误:%v", err)
+							hosterr = append(hosterr, ssh.Host)
 							return
 						}
+						hostsuccess = append(hostsuccess, ssh.Host)
 					}(ssh)
 				}
 				jenkinsMod.Wg.Wait()
 			} else {
 				sshclient := sshc[0].SshClient()
 				sftpc := jenkins.NewSftpC(sshclient)
-				sftpc.DownLoadFile(args[0], target)
+				err := sftpc.DownLoadFile(args[0], target)
+				if err != nil {
+					zaplog.Sugar.Errorf("下载文件错误:%v", err)
+					hosterr = append(hosterr, sftpc.Host)
+					return
+				}
+				hostsuccess = append(hostsuccess, sftpc.Host)
 			}
 		} else {
-			fmt.Println("主机数量：", len(jenkinsMod.SshCs))
+			zaplog.Sugar.Infoln("主机数量：", len(jenkinsMod.SshCs))
 			if len(jenkinsMod.SshCs) != 1 {
 				for _, ssh := range jenkinsMod.SshCs {
 					jenkinsMod.Wg.Add(1)
@@ -358,25 +371,34 @@ var sftpDownFile = &cobra.Command{
 						if err != nil {
 							err := os.Mkdir(localIPpath, 0755)
 							if err != nil {
-								log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
-								log.Fatal(err)
+								zaplog.Sugar.Errorf("%s:创建ip目录有错误:%v\n", sftpc.SshClient.RemoteAddr().String(), err)
+								hosterr = append(hosterr, ssh.Host)
+								return
 							}
 						}
 						err = sftpc.DownLoadFile(localIPpath, target)
 						if err != nil {
-							log.Println(err)
+							zaplog.Sugar.Errorf("下载文件错误:%v", err)
+							hosterr = append(hosterr, ssh.Host)
 							return
 						}
+						hostsuccess = append(hostsuccess, ssh.Host)
 					}(ssh)
 				}
 				jenkinsMod.Wg.Wait()
 			} else {
 				sshclient := jenkinsMod.SshCs[0].SshClient()
 				sftpc := jenkins.NewSftpC(sshclient)
-				sftpc.DownLoadFile(args[0], target)
+				err := sftpc.DownLoadFile(args[0], target)
+				if err != nil {
+					zaplog.Sugar.Errorf("下载文件错误:%v", err)
+					hosterr = append(hosterr, sftpc.Host)
+					return
+				}
+				hostsuccess = append(hostsuccess, sftpc.Host)
 			}
 		}
-
+		jenkins.Tongji(hosterr, hostsuccess)
 	},
 }
 
@@ -387,25 +409,28 @@ var sftpDownDir = &cobra.Command{
 	Long:  `download folders to a remote host  向远程主机下载文件夹，-t是远程路径,参数为本地路径`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
-			fmt.Println("❌ requires at one arguments: Local Path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: Local Path")
 			os.Exit(1)
 		}
 		if target == "" {
-			fmt.Println("❌ requires at one arguments: -t target remote path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: -t target remote path")
 			os.Exit(1)
 		}
 		if !jenkins.PathExists(args[0]) {
-			log.Println("本机目录不存在或路径不是目录")
+			zaplog.Sugar.Errorln("本机目录不存在或路径不是目录")
 			os.Exit(1)
 		}
+		//声明切片用于记录执行成功和失败的主机
+		hostsuccess := make([]string, 0)
+		hosterr := make([]string, 0)
 		//选择主机组
 		if hostgroup != "" {
 			sshc, ok := jenkinsMod.Extend[hostgroup]
 			if !ok {
-				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				zaplog.Sugar.Errorln("没有找到主机组，请检查是否配置这个主机组")
 				return
 			}
-			fmt.Println("主机数量：", len(sshc))
+			zaplog.Sugar.Infoln("主机数量：", len(sshc))
 			if len(sshc) != 1 {
 				for _, ssh := range sshc {
 					jenkinsMod.Wg.Add(1)
@@ -422,25 +447,34 @@ var sftpDownDir = &cobra.Command{
 						if err != nil {
 							err := os.Mkdir(localIPpath, 0755)
 							if err != nil {
-								log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
-								log.Fatal(err)
+								zaplog.Sugar.Errorf("%s:创建ip目录有错误:%v\n", sftpc.SshClient.RemoteAddr().String(), err)
+								hosterr = append(hosterr, ssh.Host)
+								return
 							}
 						}
 						err = sftpc.DownLoadDir(localIPpath, target)
 						if err != nil {
-							log.Println("remote read dir list fail ", err)
+							zaplog.Sugar.Errorf("下载目录错误:%v ", err)
+							hosterr = append(hosterr, ssh.Host)
 							return
 						}
+						hostsuccess = append(hostsuccess, ssh.Host)
 					}(ssh)
 				}
 				jenkinsMod.Wg.Wait()
 			} else {
 				sshclient := sshc[0].SshClient()
 				sftpc := jenkins.NewSftpC(sshclient)
-				sftpc.DownLoadDir(args[0], target)
+				err := sftpc.DownLoadDir(args[0], target)
+				if err != nil {
+					zaplog.Sugar.Errorf("下载目录错误:%v ", err)
+					hosterr = append(hosterr, sftpc.Host)
+					return
+				}
+				hostsuccess = append(hostsuccess, sftpc.Host)
 			}
 		} else {
-			fmt.Println("主机数量：", len(jenkinsMod.SshCs))
+			zaplog.Sugar.Infoln("主机数量：", len(jenkinsMod.SshCs))
 			if len(jenkinsMod.SshCs) != 1 {
 				for _, ssh := range jenkinsMod.SshCs {
 					jenkinsMod.Wg.Add(1)
@@ -457,25 +491,34 @@ var sftpDownDir = &cobra.Command{
 						if err != nil {
 							err := os.Mkdir(localIPpath, 0755)
 							if err != nil {
-								log.Printf("%s:创建ip目录有错误\n", sftpc.SshClient.RemoteAddr().String())
-								log.Fatal(err)
+								zaplog.Sugar.Errorf("%s:创建ip目录有错误:%v\n", sftpc.SshClient.RemoteAddr().String(), err)
+								hosterr = append(hosterr, ssh.Host)
+								return
 							}
 						}
 						err = sftpc.DownLoadDir(localIPpath, target)
 						if err != nil {
-							log.Println("remote read dir list fail ", err)
+							zaplog.Sugar.Errorf("下载目录错误:%v ", err)
+							hosterr = append(hosterr, ssh.Host)
 							return
 						}
+						hostsuccess = append(hostsuccess, ssh.Host)
 					}(ssh)
 				}
 				jenkinsMod.Wg.Wait()
 			} else {
 				sshclient := jenkinsMod.SshCs[0].SshClient()
 				sftpc := jenkins.NewSftpC(sshclient)
-				sftpc.DownLoadDir(args[0], target)
+				err := sftpc.DownLoadDir(args[0], target)
+				if err != nil {
+					zaplog.Sugar.Errorf("下载目录错误:%v ", err)
+					hosterr = append(hosterr, sftpc.Host)
+					return
+				}
+				hostsuccess = append(hostsuccess, sftpc.Host)
 			}
 		}
-
+		jenkins.Tongji(hosterr, hostsuccess)
 	},
 }
 

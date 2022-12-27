@@ -1,3 +1,3 @@
-2022-12-26T16:41:30.810+0800	[34mINFO[0m	jenkins/deploy_test.go:72	匹配成功的文件： a.txt
-2022-12-26T16:41:30.810+0800	[34mINFO[0m	jenkins/deploy_test.go:72	匹配成功的文件： b.txt
-2022-12-26T16:41:30.810+0800	[34mINFO[0m	jenkins/deploy_test.go:72	匹配成功的文件： c.txt
+2022-12-27T16:44:03.504+0800	[31mERROR[0m	jenkins/deploy.go:233	192.168.20.129:22:上传文件有错误之远程创建文件错误: file does not exist 远程路径: /xuanhi/test.sh
+
+2022-12-27T16:44:03.505+0800	[31mERROR[0m	jenkins/deploy_test.go:90	脚本传输错误

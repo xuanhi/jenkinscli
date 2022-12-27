@@ -84,7 +84,8 @@ func (s *SshC) SshClient() *ssh.Client {
 	}
 	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.Host, s.Port), sshConfig)
 	if err != nil {
-		log.Fatalf("unable to connect: %v", err)
+		zaplog.Sugar.Errorf("unable to connect: %v", err)
+		os.Exit(1)
 	}
 	return sshClient
 }
@@ -100,7 +101,8 @@ func (s *SshC) SshClientRsa() *ssh.Client {
 	if s.Privatekey == "" {
 		dirname, err := os.UserHomeDir() //获取家目录
 		if err != nil {
-			log.Fatalf("unable to read UserHomeDir: %v", err)
+			zaplog.Sugar.Errorf("unable to read UserHomeDir: %v", err)
+			os.Exit(1)
 		}
 		s.Privatekey = dirname + "/.ssh/id_rsa"
 	}
@@ -108,11 +110,13 @@ func (s *SshC) SshClientRsa() *ssh.Client {
 
 	key, err := ioutil.ReadFile(s.Privatekey)
 	if err != nil {
-		log.Fatalf("unable to read private key: %v", err)
+		zaplog.Sugar.Errorf("unable to read private key: %v", err)
+		os.Exit(1)
 	}
 	signer, err := ssh.ParsePrivateKey(key)
 	if err != nil {
-		log.Fatalf("unable to parse private key: %v", err)
+		zaplog.Sugar.Errorf("unable to parse private key: %v", err)
+		os.Exit(1)
 	}
 
 	config := &ssh.ClientConfig{
@@ -127,7 +131,8 @@ func (s *SshC) SshClientRsa() *ssh.Client {
 	}
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.Host, s.Port), config)
 	if err != nil {
-		log.Fatalf("unable to connect: %v", err)
+		zaplog.Sugar.Errorf("unable to connect: %v", err)
+		os.Exit(1)
 	}
 	return client
 }
@@ -141,14 +146,15 @@ func (s *SshC) SshClientRsaAndSshClient() *ssh.Client {
 
 }
 
-// 远程执行bash命令
-func (s *SshC) Execbash(cmd string) error {
+// 远程执行bash命令,错误输出和标准输出分开的,有的场景会有问题是命令返回错误码但输出为标准输出
+func (s *SshC) ExecbashB(cmd string) error {
 	//client := s.SshClient()
+	start := time.Now()
 	client := s.SshClientRsaAndSshClient()
 	defer client.Close()
 	session, err := client.NewSession()
 	if err != nil {
-		log.Println("Failed to create session: ", err)
+		zaplog.Sugar.Errorln("Failed to create session: ", err)
 		return err
 	}
 	defer session.Close()
@@ -161,14 +167,50 @@ func (s *SshC) Execbash(cmd string) error {
 		//	zaplog.Sugar.Errorw("exec bash remote server failed!", "host", client.RemoteAddr().String(), "stderr", stderr.String())
 		//zaplog.Sugar.Errorf("status [FAILED] host [%s] stderr:\n %v", client.RemoteAddr().String(), stderr.String())
 		//zaplog.Sugar.Errorf("status \033[1;31;40m[FAILED]\033[0m  host \033[1;35;40m [%s]\033[0m  stdout:\n\n %v\n", client.RemoteAddr().String(), stderr.String())
-		zaplog.Sugar.Errorf("status %s  host %s  stdout:\n\n %v\n", color.GreenB("FAILED"), color.PurpleB(client.RemoteAddr().String()), color.Red(stderr.String()))
+		zaplog.Sugar.Errorf("host %s  status %s  stdout:\n\n %v\n", color.PurpleB(client.RemoteAddr().String()), color.GreenB("FAILED"), color.Red(stderr.String()))
 		return err
 	}
 	//log.Printf("%sremote host:%s exec bash remote server finished!", xx, client.RemoteAddr().String())
 	//zaplog.Sugar.Infof("status \033[1;32;40m[SUCCESS]\033[0m  host \033[1;35;40m [%s]\033[0m  stdout:\n\n %v\n\n", client.RemoteAddr().String(), stdout.String())
-	zaplog.Sugar.Infof("status %s  host %s stdout:\n\n %v\n\n", color.GreenB("SUCCESS"), color.PurpleB(client.RemoteAddr().String()), stdout.String())
+	elapsed := time.Since(start).String()
+	zaplog.Sugar.Infof("host %s  time %s status %s stdout:\n\n %v\n\n", color.PurpleB(client.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB("SUCCESS"), stdout.String())
 	//fmt.Println(b.String())
 	return nil
+}
+
+// 远程执行bash命令 错误输出和标准输出绑定一起的
+func (s *SshC) Execbash(cmd, sudo string) error {
+	//client := s.SshClient()
+	start := time.Now()
+	client := s.SshClientRsaAndSshClient()
+	defer client.Close()
+	session, err := client.NewSession()
+	if err != nil {
+		zaplog.Sugar.Errorln("Failed to create session: ", err)
+		return err
+	}
+	defer session.Close()
+	if sudo != "" {
+		output, err := session.CombinedOutput(fmt.Sprintf("/usr/bin/bash -c \"echo %s |sudo -S \"%s\"\"", sudo, cmd))
+		if err != nil {
+			zaplog.Sugar.Errorf("host %s  status %s  stdout:\n\n %v\n", color.PurpleB(client.RemoteAddr().String()), color.GreenB("FAILED"), color.Red(string(output)))
+			return err
+		}
+		elapsed := time.Since(start).String()
+		zaplog.Sugar.Infof("host %s  time %s status %s stdout:\n\n %v\n\n", color.PurpleB(client.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB("SUCCESS"), color.Yellow(string(output)))
+
+	} else {
+		output, err := session.CombinedOutput(fmt.Sprintf("/usr/bin/bash -c \"%s\"", cmd))
+		if err != nil {
+			zaplog.Sugar.Errorf("host %s  status %s  stdout:\n\n %v\n", color.PurpleB(client.RemoteAddr().String()), color.GreenB("FAILED"), color.Red(string(output)))
+			return err
+		}
+		elapsed := time.Since(start).String()
+		zaplog.Sugar.Infof("host %s  time %s status %s stdout:\n\n %v\n\n", color.PurpleB(client.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB("SUCCESS"), color.Yellow(string(output)))
+
+	}
+	return nil
+
 }
 
 // 初始化SftpC对象 同时创建了sftpclient 客户端句柄
@@ -195,20 +237,20 @@ func (f *SftpC) SftpClient() {
 	f.Client = sftpClient
 }
 
-// 远程执行sh脚本
-func (f *SftpC) ExecTask(localFilePath, remoteFilePath, arg, sudo string) error {
+// 远程执行sh脚本 过时的
+func (f *SftpC) ExecTaskOld(localFilePath, remoteFilePath, arg, sudo string) error {
 	// err := os.Chmod(localFilePath, 0755)
 	// if err != nil {
 	// 	log.Println("添加执行权限遇到错误", err)
 	// }
 	err := f.UploadFile(localFilePath, remoteFilePath)
 	if err != nil {
-		log.Println("脚本传输错误")
+		zaplog.Sugar.Errorln("脚本传输错误")
 		return err
 	}
 	session, err := f.SshClient.NewSession()
 	if err != nil {
-		log.Println("创建ssh会话失败")
+		zaplog.Sugar.Errorln("创建ssh session会话失败")
 		return err
 	}
 	defer session.Close()
@@ -230,6 +272,48 @@ func (f *SftpC) ExecTask(localFilePath, remoteFilePath, arg, sudo string) error 
 			return err
 		}
 		log.Printf("%sremote host:%s exec bash remote server finished!", xx, f.SshClient.RemoteAddr().String())
+	}
+
+	return nil
+
+}
+
+// 远程执行sh脚本
+func (f *SftpC) ExecTask(localFilePath, remoteFilePath, arg, sudo string) error {
+	start := time.Now()
+	err := f.UploadFileSilence(localFilePath, remoteFilePath)
+	if err != nil {
+		zaplog.Sugar.Errorln("脚本传输错误")
+		return err
+	}
+	session, err := f.SshClient.NewSession()
+	if err != nil {
+		zaplog.Sugar.Errorln("创建ssh session会话失败")
+		return err
+	}
+	defer session.Close()
+	remoteFileName := path.Base(localFilePath)
+	dstFile := path.Join(remoteFilePath, remoteFileName)
+	canshu := arg
+	if sudo != "" {
+		output, err := session.CombinedOutput(fmt.Sprintf("/usr/bin/bash -c \"echo %s | sudo -S %s %s\"", sudo, dstFile, canshu))
+		if err != nil {
+			//log.Println("执行脚本失败")
+			//log.Printf("%sremote host:%s exec bash remote server Failed!", xx, f.SshClient.RemoteAddr().String())
+			zaplog.Sugar.Errorf("host %s  status %s  stdout:\n\n %v\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.GreenB("FAILED"), color.Red(string(output)))
+			return err
+		}
+		elapsed := time.Since(start).String()
+		zaplog.Sugar.Infof("host %s  time %s status %s stdout:\n\n %v\n\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB("SUCCESS"), color.Yellow(string(output)))
+	} else {
+		output, err := session.CombinedOutput(fmt.Sprintf("/usr/bin/sh %s %s", dstFile, canshu))
+		if err != nil {
+			//log.Println("执行脚本失败")
+			zaplog.Sugar.Errorf("host %s  status %s  stdout:\n\n %v\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.GreenB("FAILED"), color.Red(string(output)))
+			return err
+		}
+		elapsed := time.Since(start).String()
+		zaplog.Sugar.Infof("host %s  time %s status %s stdout:\n\n %v\n\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB("SUCCESS"), color.Yellow(string(output)))
 	}
 
 	return nil
@@ -279,6 +363,50 @@ func (f *SftpC) UploadFile(localFilePath, remoteFilePath string) error {
 	//log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), localFilePath)
 	elapsed := time.Since(start).String()
 	zaplog.Sugar.Infof("host: %s time %v status %s\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB(localFilePath+" copy finished!"))
+	return nil
+}
+
+// 静默模式上传文件 指定文件路径到远程目录下
+func (f *SftpC) UploadFileSilence(localFilePath, remoteFilePath string) error {
+	srcFile, err := os.Open(localFilePath)
+	if err != nil {
+		zaplog.Sugar.Errorf("%s:上传文件有错误之打开文件错误\n", f.SshClient.RemoteAddr().String())
+		//	log.Println(err)
+		return err
+	}
+	defer srcFile.Close()
+	fs, err := os.Stat(localFilePath)
+	if err != nil {
+		zaplog.Sugar.Errorln("获取本地文件信息遇到错误：", err)
+	}
+	var remoteFileName = path.Base(localFilePath)
+	dstFile, err := f.Client.Create(path.Join(remoteFilePath, remoteFileName))
+	if err != nil {
+		zaplog.Sugar.Errorf("%s:上传文件有错误之远程创建文件错误: %v 远程路径: %s\n", f.SshClient.RemoteAddr().String(), err, path.Join(remoteFilePath, remoteFileName))
+		//zaplog.Sugar.Errorln("sftpClient.Create error : ", path.Join(remoteFilePath, remoteFileName))
+		//	log.Println(err)
+		return err
+	}
+	err = dstFile.Chmod(fs.Mode())
+	if err != nil {
+		zaplog.Sugar.Errorf("设置权限遇到错误:%v", err)
+	}
+	defer dstFile.Close()
+	ff, err := ioutil.ReadAll(srcFile)
+	if err != nil {
+		zaplog.Sugar.Errorf("%s:上传文件有错误之读取文件错误\n", f.SshClient.RemoteAddr().String())
+		zaplog.Sugar.Errorln("ReadAll error : ", localFilePath)
+		//	log.Println(err)
+		return err
+	}
+	dstFile.Write(ff)
+
+	//fmt.Println("mod:", fs)
+	//f.Client.Chmod(path.Join(remoteFilePath, remoteFileName), fs.Mode())
+
+	//log.Println(f.SshClient.RemoteAddr().String(),localFilePath," copy file to remote server finished!")
+	//log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), localFilePath)
+	//zaplog.Sugar.Infof("host: %s time %v status %s\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB(localFilePath+" copy finished!"))
 	return nil
 }
 
@@ -354,9 +482,10 @@ func (f *SftpC) UploadFilebuf(localFilePath, remoteFilePath string) error {
 
 // 上传目录 上传本地目录下所有文件到远程目录下，不会将指定目录的父目录上传到远程目录下，只会上传内容
 func (f *SftpC) UploadDirectory(localPath string, remotePath string) error {
+	start := time.Now()
 	localFiles, err := ioutil.ReadDir(localPath)
 	if err != nil {
-		log.Printf("%s:上传目录有错误\n", f.SshClient.RemoteAddr().String())
+		zaplog.Sugar.Errorf("%s:上传目录有错误之读取本地目录错误\n", f.SshClient.RemoteAddr().String())
 		//log.Fatal("read dir list fail ", err)
 		return err
 	}
@@ -370,19 +499,26 @@ func (f *SftpC) UploadDirectory(localPath string, remotePath string) error {
 			f.Client.Mkdir(remoteFilePath)
 			f.UploadDirectory(localFilePath, remoteFilePath)
 		} else {
-			f.UploadFile(path.Join(localPath, backupDir.Name()), remotePath)
+			err := f.UploadFileSilence(path.Join(localPath, backupDir.Name()), remotePath)
+			if err != nil {
+				zaplog.Sugar.Errorf("上传文件%v错误", localFilePath)
+				return err
+			}
 		}
 	}
 	//log.Println(localPath + " copy directory to remote server finished!")
-	log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), localPath)
+	//log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), localPath)
+	elapsed := time.Since(start).String()
+	zaplog.Sugar.Infof("host: %s time %v status %s\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB(localPath+" copy finished!"))
 	return nil
 }
 
 // 下载文件 指定本地目录，指定远程文件下载目录和文件
 func (f *SftpC) DownLoadFile(localpath, remotepath string) error {
+	start := time.Now()
 	srcFile, err := f.Client.Open(remotepath)
 	if err != nil {
-		log.Printf("%s:下载文件有错误\n", f.SshClient.RemoteAddr().String())
+		zaplog.Sugar.Errorf("%s:下载文件有错误之打开远程文件错误\n", f.SshClient.RemoteAddr().String())
 		//log.Fatal("文件读取失败", err)
 		return err
 	}
@@ -390,18 +526,48 @@ func (f *SftpC) DownLoadFile(localpath, remotepath string) error {
 	localFilename := path.Base(remotepath)
 	dstFile, err := os.Create(path.Join(localpath, localFilename))
 	if err != nil {
-		log.Printf("%s:下载目录有错误--文件创建失败\n", f.SshClient.RemoteAddr().String())
+		zaplog.Sugar.Errorf("%s:下载目录有错误之本地文件创建失败\n", f.SshClient.RemoteAddr().String())
 		//log.Fatalln("文件创建失败", err)
 		return err
 	}
 	defer dstFile.Close()
 	if _, err := srcFile.WriteTo(dstFile); err != nil {
-		log.Printf("%s:下载文件有错误--文件写入有错误\n", f.SshClient.RemoteAddr().String())
+		zaplog.Sugar.Errorf("%s:下载文件有错误之文件写入有错误\n", f.SshClient.RemoteAddr().String())
 		//log.Fatal("文件写入失败", err)
 		return err
 	}
 	//fmt.Println(remotepath, "文件下载成功")
-	log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), remotepath)
+	//log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), remotepath)
+	elapsed := time.Since(start).String()
+	zaplog.Sugar.Infof("host: %s time %v status %s\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB(remotepath+" download finished!"))
+	return nil
+}
+
+// 静默模式下载文件 指定本地目录，指定远程文件下载目录和文件
+func (f *SftpC) DownLoadFileSilence(localpath, remotepath string) error {
+	srcFile, err := f.Client.Open(remotepath)
+	if err != nil {
+		zaplog.Sugar.Errorf("%s:下载文件有错误之打开远程文件错误\n", f.SshClient.RemoteAddr().String())
+		//log.Fatal("文件读取失败", err)
+		return err
+	}
+	defer srcFile.Close()
+	localFilename := path.Base(remotepath)
+	dstFile, err := os.Create(path.Join(localpath, localFilename))
+	if err != nil {
+		zaplog.Sugar.Errorf("%s:下载目录有错误之本地文件创建失败\n", f.SshClient.RemoteAddr().String())
+		//log.Fatalln("文件创建失败", err)
+		return err
+	}
+	defer dstFile.Close()
+	if _, err := srcFile.WriteTo(dstFile); err != nil {
+		zaplog.Sugar.Errorf("%s:下载文件有错误之文件写入有错误\n", f.SshClient.RemoteAddr().String())
+		//log.Fatal("文件写入失败", err)
+		return err
+	}
+	//fmt.Println(remotepath, "文件下载成功")
+	//log.Printf("%sremote host:%s path:%s copy file to remote server finished!", xx, f.SshClient.RemoteAddr().String(), remotepath)
+	//zaplog.Sugar.Infof("host: %s time %v status %s\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB(remotepath+" download finished!"))
 	return nil
 }
 
@@ -437,9 +603,10 @@ func (f *SftpC) DownLoadFileP(localpath, remotepath string) {
 
 // 下载目录，将远端目录下载到本地目录下
 func (f *SftpC) DownLoadDir(localpath, remotepath string) error {
+	start := time.Now()
 	remotefiles, err := f.Client.ReadDir(remotepath)
 	if err != nil {
-		log.Printf("%s:下载目录有错误\n", f.SshClient.RemoteAddr().String())
+		zaplog.Sugar.Errorf("%s:下载目录有错误之远程读取目录错误\n", f.SshClient.RemoteAddr().String())
 		//log.Fatal("remote read dir list fail ", err)
 		return err
 	}
@@ -450,9 +617,15 @@ func (f *SftpC) DownLoadDir(localpath, remotepath string) error {
 			os.Mkdir(localFilePath, backupDir.Mode())
 			f.DownLoadDir(localFilePath, remoteFilePath)
 		} else {
-			f.DownLoadFile(path.Dir(localFilePath), remoteFilePath)
+			err := f.DownLoadFileSilence(path.Dir(localFilePath), remoteFilePath)
+			if err != nil {
+				zaplog.Sugar.Errorf("文件%s下载错误", remoteFilePath)
+				return err
+			}
 		}
 	}
+	elapsed := time.Since(start).String()
+	zaplog.Sugar.Infof("host: %s time %v status %s\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB(remotepath+" download finished!"))
 	return nil
 }
 
@@ -574,5 +747,13 @@ func TextTemplate(infilepath, outfilepath string, data map[string]string) {
 			log.Fatalln(err)
 		}
 		t.Execute(f, data)
+	}
+}
+
+// 统计封装
+func Tongji(hosterr, hostsuccess []string) {
+	zaplog.Sugar.Infof("主机统计: SUCCESS: %d \t ERROR: %d \t 遇错主机：%v", len(hostsuccess), len(hosterr), hosterr)
+	if len(hosterr) != 0 {
+		os.Exit(1)
 	}
 }
