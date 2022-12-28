@@ -1,6 +1,0 @@
-2022-12-28T09:12:12.096+0800	[34mINFO[0m	jenkins/deploy_test.go:82	host [0;35m[192.168.20.129:22][0m  time [0;36m[167.80795ms][0m status [0;32m[SUCCESS][0m stdout:
-
- [0;33m[sudo] password for xuanhi: Wed Dec 28 01:12:12 AM UTC 2022
-[0m
-
-
