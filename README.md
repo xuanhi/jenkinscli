@@ -10,6 +10,8 @@ jenkinscli 是一个简单的运维工具，大体上分为两个功能，远程
 
 **注意：本版本将使用yaml格式的配置文件**
 
+**3.0.5更新：引入了zap日志框架，优化了日志输出并且在控制台输出时带有颜色，这个在管理主机时非常有用，远程执行bash命令时新增sudo的支持（参数-s或--sudo）**
+
 **3.0.4更新：添加了远程执行脚本时为脚本输入位置参数。更新了对于ubuntu系统远程执行脚本时指定sudo密码(-s或--sudo)**
 
 **3.0.3更新：添加了tmpl功能**
@@ -24,7 +26,7 @@ jenkinscli 是一个简单的运维工具，大体上分为两个功能，远程
 
 建议注入参数时使用引号，特别是有空格的参数名或值必须使用引号。
 
-**使用指南** 
+**使用指南**
 
 ## 1.配置jenkins登录信息
 
@@ -116,7 +118,7 @@ MailSub: pc-system Test!!!
 
 ```
 
-> MsilSmpt , MailPort, MailUser, MailToken分别指定: 服务器地址，端口，邮箱用户名，邮箱token	
+> MsilSmpt , MailPort, MailUser, MailToken分别指定: 服务器地址，端口，邮箱用户名，邮箱token
 >
 > 邮箱token 需要你登录到邮箱，在设置里可以拿到自己的token（这里以qq邮箱为例）
 >
@@ -138,8 +140,6 @@ MailSub: pc-system Test!!!
  #-m 构建后发送邮件 -s 设置邮件标题
  ./jenkinscli launch -m -s "test" pc-system 
 ```
-
-
 
 ```shell
  #-m 构建后发送邮件 -s 设置邮件标题 -a 为邮件添加附件
@@ -189,9 +189,9 @@ Sshs:
 >
 > Password: 主机密码	(若没有设置免密登录就必须设置明文密码)
 >
-> Port: ssh端口 默认22	
+> Port: ssh端口 默认22
 >
-> Cmd: 远程执行的bash指令，优先级高于命令行，适用于设置某台主机独立与命令行的bash指令 
+> Cmd: 远程执行的bash指令，优先级高于命令行，适用于设置某台主机独立与命令行的bash指令
 >
 > Disbash 布尔类型 默认false 禁用某台主机执行如：jenkinscli ssh bash "date" 若字段为true这台主机将不会执行，不会影响其它主机执行
 >
@@ -356,12 +356,11 @@ jenkinscli ssh task
 2022/05/30 09:48:25 ------------------------------remote host:192.168.100.31:22 exec bash remote server finished!------------------------------
 ```
 
--t 指定远程执行脚本的工作目录 
+-t 指定远程执行脚本的工作目录
 
 -s ubuntu 系统执行sudo密码
 
 -c 为脚本输入位置参数，字符串类型多个参数用空格隔开
-
 
 ### 3.3使用Extend管理主机群
 
@@ -517,7 +516,7 @@ spec:
  replicas: {{if .number}}{{.number}}{{else}}1{{end}}
 ```
 
-这样当没有指定replicas值时就会设置为1 
+这样当没有指定replicas值时就会设置为1
 
 我们也可以用其它的语法：
 
@@ -537,4 +536,5 @@ with 表示会取出 .number 的值再赋值给 '.'  因此直接使用{{.}}就�
 ## 5.常见问题
 
 ## 4.常见问题
+
 1.如果在配置文件没有指定Jenkins登录的信息会导致jengkins初始化失败从而退出程序。通常在单独使用某个子命令时遇到，比如使用sftp 、ssh、email等。**我们可以通过-I来忽略Jenkins初始化报错导致的程序退出。这样你就可以单独使用其它子命令了。**
