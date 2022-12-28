@@ -37,7 +37,7 @@ func getEncoder() zapcore.Encoder {
 }
 
 func getLogWriter() zapcore.WriteSyncer {
-	file, _ := os.Create("./test.log")
+	file, _ := os.Create("./cmd.log")
 	//file, _ := os.OpenFile("./exec.log", os.O_WRONLY|os.O_APPEND, 0666)
 
 	// 利用io.MultiWriter支持文件和终端两个输出目标

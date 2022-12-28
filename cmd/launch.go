@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/xuanhi/jenkinscli/jenkins"
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 )
 
 var (
@@ -30,13 +31,13 @@ the default is not to trigger an artifact download if the download path is speci
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("launch called")
 		if len(args) < 1 {
-			fmt.Println("❌ requires at one arguments: JOB_NAME")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: JOB_NAME")
 			os.Exit(1)
 		}
 		//注入构建参数
 		mapv := jenkins.ArgstoMap(args)
 		qid, err := jenkinsMod.Instance.BuildJob(jenkinsMod.Context, args[0], mapv) //构建并返回队列id
-		fmt.Println("------queueid:", qid)
+		zaplog.Sugar.Infoln("------queueid:", qid)
 		if err != nil {
 			panic(err)
 		}
@@ -48,33 +49,33 @@ the default is not to trigger an artifact download if the download path is speci
 			time.Sleep(5000 * time.Millisecond)
 			build.Poll(jenkinsMod.Context)
 		}
-		fmt.Printf("build number %d with result: %v\n", build.GetBuildNumber(), build.GetResult())
+		zaplog.Sugar.Infof("build number %d with result: %v\n", build.GetBuildNumber(), build.GetResult())
 
 		//发邮件
-		fmt.Println("发邮件入口", mail)
+		zaplog.Sugar.Infoln("发邮件入口", mail)
 		if mail {
 			fmt.Println("⏳ send email...")
 			if mailsubject != "" {
 				jenkinsMod.MailSub = mailsubject
 			}
 			if mailattach != "" {
-				fmt.Println("赋值attach")
+				zaplog.Sugar.Infoln("赋值attach")
 				jenkinsMod.MailAttach = mailattach
 			}
 			err := jenkinsMod.SendMail(build.GetBuildNumber(), build.GetResult(), args[0])
 			if err != nil {
-				fmt.Println("邮件发送出错：", err)
+				zaplog.Sugar.Errorln("邮件发送出错：", err)
 
 			}
-			println("邮件发送完成")
+			zaplog.Sugar.Infoln("邮件发送完成")
 
 		}
 		//下载工件
 		if path != "" && build.GetResult() == "SUCCESS" {
-			fmt.Println("⏳ downloading artifacts...")
+			zaplog.Sugar.Infoln("⏳ downloading artifacts...")
 			err := jenkinsMod.DownloadArtifacts(args[0], build.GetBuildNumber(), path)
 			if err != nil {
-				fmt.Printf("cannot download artifacts: %s\n", err)
+				zaplog.Sugar.Errorf("cannot download artifacts: %s\n", err)
 				os.Exit(1)
 			}
 		}

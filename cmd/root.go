@@ -4,7 +4,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -25,7 +24,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		fmt.Println(err)
+		zaplog.Sugar.Errorf("rootcmd execute failed:%v", err)
 		os.Exit(1)
 	}
 }
@@ -48,7 +47,7 @@ func init() {
 func initConfig() {
 	dirname, err := os.UserHomeDir() //获取家目录
 	if err != nil {
-		fmt.Println(err)
+		zaplog.Sugar.Errorf("获取加目录出错：%v", err)
 		os.Exit(1)
 	}
 	if configFile != "" {
@@ -58,7 +57,7 @@ func initConfig() {
 	}
 	config, err := jenkinsConfig.LoadConfig()
 	if err != nil {
-		fmt.Println(err)
+		zaplog.Sugar.Errorf("加载配置文件出错：%v", err)
 		os.Exit(1)
 	}
 	//	fmt.Printf("打印Config结构体2%v\n", config)

@@ -191,7 +191,7 @@ func (s *SshC) Execbash(cmd, sudo string) error {
 	}
 	defer session.Close()
 	if sudo != "" {
-		output, err := session.CombinedOutput(fmt.Sprintf("/usr/bin/bash -c \"echo %s |sudo -S \"%s\"\"", sudo, cmd))
+		output, err := session.CombinedOutput(fmt.Sprintf("/usr/bin/bash -c \"echo %s | sudo -S \"%s\"\"", sudo, cmd))
 		if err != nil {
 			zaplog.Sugar.Errorf("host %s  status %s  stdout:\n\n %v\n", color.PurpleB(client.RemoteAddr().String()), color.GreenB("FAILED"), color.Red(string(output)))
 			return err
@@ -412,21 +412,34 @@ func (f *SftpC) UploadFileSilence(localFilePath, remoteFilePath string) error {
 
 // 用于模板动态生成文件再上传至远端服务器
 func (f *SftpC) TmplandUploadFile(infilepath, outfilepath string, mod uint32, data map[string]string) error {
+	start := time.Now()
 	file, err := ioutil.ReadFile(infilepath)
 	if err != nil {
-		log.Fatalln("读取文件错误", err)
+		zaplog.Sugar.Errorln("读取文件错误")
+		return err
 	}
 	t := template.Must(template.New("k8s").Parse(string(file)))
 	ftpfile, err := f.Client.Create(outfilepath)
 	if err != nil {
-		log.Fatalln(err)
+		zaplog.Sugar.Errorln("远程创建文件错误")
+		return err
 	}
 	if mod != 0 {
 		err = ftpfile.Chmod(fs.FileMode(mod))
+		if err != nil {
+			zaplog.Sugar.Errorln("文件权限设置错误")
+			return err
+		}
 	}
 
-	t.Execute(ftpfile, data)
-	return err
+	err = t.Execute(ftpfile, data)
+	if err != nil {
+		zaplog.Sugar.Errorln("解析文本错误")
+		return err
+	}
+	elapsed := time.Since(start).String()
+	zaplog.Sugar.Infof("host: %s time %v status %s\n", color.PurpleB(f.SshClient.RemoteAddr().String()), color.CyanB(elapsed), color.GreenB(outfilepath+" finished!"))
+	return nil
 }
 
 // 使用缓存上传文件 指定文件路径到远程目录下
@@ -697,7 +710,7 @@ func MatchFile(reg, name string) bool {
 func MapFormat(name string) bool {
 	myRegex, err := regexp.Compile(".*:.*")
 	if err != nil {
-		log.Println(err)
+		zaplog.Sugar.Errorf("格式错误：%v", err)
 	}
 	return myRegex.MatchString(name)
 
@@ -715,15 +728,16 @@ func ArgstoMap(args []string) map[string]string {
 		if MapFormat(arg) {
 			//切割字符串
 			kv := strings.Split(arg, ":")
-			log.Println("kv:", kv)
+			zaplog.Sugar.Infoln("kv:", kv)
 			if len(kv) == 2 {
 				argmap[kv[0]] = kv[1]
 			} else {
-				log.Fatalf("一个参数只能有一个：字符")
+				zaplog.Sugar.Errorf("一个参数只能有一个：字符")
+				os.Exit(1)
 			}
 
 		} else {
-			log.Printf("第%d个参数<%s>格式不正确,将忽略此项设置", k+1, arg)
+			zaplog.Sugar.Errorf("第%d个参数<%s>格式不正确,将忽略此项设置", k+1, arg)
 		}
 	}
 	return argmap
@@ -733,18 +747,20 @@ func ArgstoMap(args []string) map[string]string {
 func TextTemplate(infilepath, outfilepath string, data map[string]string) {
 	f, err := ioutil.ReadFile(infilepath)
 	if err != nil {
-		log.Fatalln("读取文件错误", err)
+		zaplog.Sugar.Errorln("读取文件错误", err)
+		os.Exit(1)
 	}
 	t := template.Must(template.New("k8s").Parse(string(f)))
 	if outfilepath == "nil" {
 		err := t.Execute(os.Stdout, data)
 		if err != nil {
-			log.Println("executing template:", err)
+			zaplog.Sugar.Errorln("executing template:", err)
 		}
 	} else {
 		f, err := os.Create(outfilepath)
 		if err != nil {
-			log.Fatalln(err)
+			zaplog.Sugar.Errorf("创建文件失败：%v", err)
+			os.Exit(1)
 		}
 		t.Execute(f, data)
 	}

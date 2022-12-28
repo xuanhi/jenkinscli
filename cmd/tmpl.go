@@ -1,22 +1,20 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
-	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/xuanhi/jenkinscli/jenkins"
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 )
 
-//模板文件路径
+// 模板文件路径
 var tmpl string
 
-//定义权限
+// 定义权限
 var mod uint32
 
 // tmplCmd represents the tmpl command
@@ -35,7 +33,7 @@ name:vaule形式,文件里使用{{.name}}来替换变量name的值,name为输入
 	Run: func(cmd *cobra.Command, args []string) {
 		//fmt.Println("tmpl tmpllocal")
 		if len(args) < 1 {
-			fmt.Println("❌ requires at one arguments: path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: path")
 			os.Exit(1)
 		}
 		//注入命令行参数到map
@@ -51,15 +49,17 @@ var tmplremote = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		//fmt.Println("tmpl tmplremote")
 		if len(args) < 1 {
-			fmt.Println("❌ requires at one arguments: path")
+			zaplog.Sugar.Errorln("❌ requires at one arguments: path")
 			os.Exit(1)
 		}
-
+		//声明切片用于记录执行成功和失败的主机
+		hostsuccess := make([]string, 0)
+		hosterr := make([]string, 0)
 		//选择主机组
 		if hostgroup != "" {
 			sshc, ok := jenkinsMod.Extend[hostgroup]
 			if !ok {
-				log.Println("没有找到主机组，请检查是否配置这个主机组")
+				zaplog.Sugar.Errorln("没有找到主机组，请检查是否配置这个主机组")
 				return
 			}
 			for _, ssh := range sshc {
@@ -75,9 +75,11 @@ var tmplremote = &cobra.Command{
 					data := jenkins.ArgstoMap(args)
 					err := sftpc.TmplandUploadFile(tmpl, args[0], mod, data)
 					if err != nil {
-						log.Println(err)
+						zaplog.Sugar.Errorf("错误：%v", err)
+						hosterr = append(hosterr, ssh.Host)
 						return
 					}
+					hostsuccess = append(hostsuccess, ssh.Host)
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
@@ -95,13 +97,16 @@ var tmplremote = &cobra.Command{
 					data := jenkins.ArgstoMap(args)
 					err := sftpc.TmplandUploadFile(tmpl, args[0], mod, data)
 					if err != nil {
-						log.Println(err)
+						zaplog.Sugar.Errorf("错误：%v", err)
+						hosterr = append(hosterr, ssh.Host)
 						return
 					}
+					hostsuccess = append(hostsuccess, ssh.Host)
 				}(ssh)
 			}
 			jenkinsMod.Wg.Wait()
 		}
+		jenkins.Tongji(hosterr, hostsuccess)
 
 	},
 }

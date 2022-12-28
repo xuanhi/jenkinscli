@@ -1,14 +1,13 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 )
 
 var (
@@ -25,7 +24,7 @@ var mailCmd = &cobra.Command{
 	(if no title is specified the title in the configuration file will be used)`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
-			fmt.Println("❌ 没有设置邮箱标题，比如 jenkinscli mail \"hello world\"")
+			zaplog.Sugar.Errorln("❌ 没有设置邮箱标题，比如 jenkinscli mail \"hello world\"")
 			os.Exit(1)
 		}
 		if mailattach != "" {
@@ -36,7 +35,11 @@ var mailCmd = &cobra.Command{
 			jenkinsMod.MailBody = string(contents)
 		}
 		jenkinsMod.MailSub = args[0]
-		jenkinsMod.SendMailCustom()
+		err := jenkinsMod.SendMailCustom()
+		if err != nil {
+			zaplog.Sugar.Errorf("发送失败:%v", err)
+			return
+		}
 	},
 }
 

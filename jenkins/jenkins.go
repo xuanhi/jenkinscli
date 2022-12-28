@@ -5,17 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/bndr/gojenkins"
 	"github.com/spf13/viper"
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 	"gopkg.in/gomail.v2"
 )
 
-//jiekins 连接对象
+// jiekins 连接对象
 type Jenkins struct {
 	Instance    *gojenkins.Jenkins
 	Server      string
@@ -43,7 +43,7 @@ type Jenkins struct {
 	Extend map[string][]*SshC
 }
 
-//配置被集中在json文件中
+// 配置被集中在json文件中
 type Config struct {
 	Server         string `mapstructure:"Server"`
 	JenkinsUser    string `mapstructure:"JenkinsUser"`
@@ -71,7 +71,7 @@ type Config struct {
 	Extend map[string][]*SshC `mapstructure:"Extend"` //主机管理器
 }
 
-//设置默认配置路径
+// 设置默认配置路径
 func (j *Config) SetConfigPath(path string) {
 	dir, file := filepath.Split(path)
 	//fmt.Println("当前文件路径", dir)
@@ -80,7 +80,7 @@ func (j *Config) SetConfigPath(path string) {
 	j.ConfigFullPath = j.ConfigPath + j.ConfigFileName
 }
 
-//从指定路径加载配置文件
+// 从指定路径加载配置文件
 func (j *Config) LoadConfig() (config Config, err error) {
 	viper.AddConfigPath(j.ConfigPath)
 	viper.SetConfigName(j.ConfigFileName)
@@ -97,7 +97,7 @@ func (j *Config) LoadConfig() (config Config, err error) {
 	return
 }
 
-//init 将会初始化连接jenkins server
+// init 将会初始化连接jenkins server
 func (j *Jenkins) Init(config Config) error {
 	j.JenkinsUser = config.JenkinsUser
 	j.Server = config.Server
@@ -130,7 +130,7 @@ func (j *Jenkins) Init(config Config) error {
 	return err
 }
 
-//下载制品库artifacts
+// 下载制品库artifacts
 func (j *Jenkins) DownloadArtifacts(jobName string, buildID int64, pathToSave string) error {
 	job, err := j.Instance.GetJob(j.Context, jobName)
 	if err != nil {
@@ -142,11 +142,11 @@ func (j *Jenkins) DownloadArtifacts(jobName string, buildID int64, pathToSave st
 	}
 	artifacts := build.GetArtifacts()
 	if len(artifacts) <= 0 {
-		fmt.Printf("No artifacts available for download\n")
+		zaplog.Sugar.Warnf("No artifacts available for download\n")
 		return nil
 	}
 	for _, a := range artifacts {
-		fmt.Printf("Saving artifact %s in %s\n", a.FileName, pathToSave)
+		zaplog.Sugar.Infof("Saving artifact %s in %s\n", a.FileName, pathToSave)
 		_, err := a.SaveToDir(j.Context, pathToSave)
 		if err != nil {
 			return errors.New("❌ unable to download artifact")
@@ -155,28 +155,28 @@ func (j *Jenkins) DownloadArtifacts(jobName string, buildID int64, pathToSave st
 	return nil
 }
 
-//显示构建队列
+// 显示构建队列
 func (j *Jenkins) ShowBuildQueue() error {
 	queue, _ := j.Instance.GetQueue(j.Context)
 	totalTasks := 0
 	for i, item := range queue.Raw.Items {
-		fmt.Printf("Name: %s\n", item.Task.Name)
-		fmt.Printf("ID: %d\n", item.ID)
+		zaplog.Sugar.Infof("Name: %s\n", item.Task.Name)
+		zaplog.Sugar.Infof("ID: %d\n", item.ID)
 		j.ShowStatus(item.Task.Color)
-		fmt.Printf("Pending: %v\n", item.Pending)
-		fmt.Printf("Stuck: %v\n", item.Stuck)
+		zaplog.Sugar.Infof("Pending: %v\n", item.Pending)
+		zaplog.Sugar.Infof("Stuck: %v\n", item.Stuck)
 
-		fmt.Printf("Why: %s\n", item.Why)
-		fmt.Printf("URL: %s\n", item.Task.URL)
-		fmt.Printf("\n")
+		zaplog.Sugar.Infof("Why: %s\n", item.Why)
+		zaplog.Sugar.Infof("URL: %s\n", item.Task.URL)
+		zaplog.Sugar.Infof("\n")
 		totalTasks = i + 1
 	}
-	fmt.Printf("Number of tasks in the build queue: %d\n", totalTasks)
+	zaplog.Sugar.Infof("Number of tasks in the build queue: %d\n", totalTasks)
 
 	return nil
 }
 
-//显示对象的状态
+// 显示对象的状态
 func (j *Jenkins) ShowStatus(object string) {
 	switch object {
 	case "blue":
@@ -198,44 +198,44 @@ func (j *Jenkins) ShowStatus(object string) {
 	}
 }
 
-//显示所有views
+// 显示所有views
 func (j *Jenkins) ShowViews() error {
 	views, err := j.Instance.GetAllViews(j.Context)
 	if err != nil {
 		return err
 	}
 	for _, view := range views {
-		fmt.Printf("✅ %s\n", view.GetName())
-		fmt.Printf("%s\n", view.GetUrl())
-		fmt.Printf("\n")
+		zaplog.Sugar.Infof("✅ %s\n", view.GetName())
+		zaplog.Sugar.Infof("%s\n", view.GetUrl())
+		zaplog.Sugar.Infof("\n")
 		for _, job := range view.GetJobs() {
-			fmt.Printf("✅ %s\n", job.Name)
-			fmt.Printf("%s\n", job.Url)
+			zaplog.Sugar.Infof("✅ %s\n", job.Name)
+			zaplog.Sugar.Infof("%s\n", job.Url)
 		}
-		fmt.Printf("\n")
+		zaplog.Sugar.Infof("\n")
 	}
 	return nil
 }
 
-//显示所有jobs
+// 显示所有jobs
 func (j *Jenkins) ShowAllJobs() error {
 	jobs, err := j.Instance.GetAllJobs(j.Context)
 	if err != nil {
 		return err
 	}
 	for _, job := range jobs {
-		fmt.Printf("✅ %s\n", job.Raw.Name)
+		zaplog.Sugar.Infof("✅ %s\n", job.Raw.Name)
 		j.ShowStatus(job.Raw.Color)
-		fmt.Printf("%s\n", job.Raw.Description)
-		fmt.Printf("%s\n", job.Raw.URL)
-		fmt.Printf("\n")
+		zaplog.Sugar.Infof("%s\n", job.Raw.Description)
+		zaplog.Sugar.Infof("%s\n", job.Raw.URL)
+		zaplog.Sugar.Infof("\n")
 	}
 	return nil
 }
 
-//获取最后的build
+// 获取最后的build
 func (j *Jenkins) GetLastBuild(jobName string) error {
-	fmt.Printf("⏳ Collecting job information...\n")
+	zaplog.Sugar.Infof("⏳ Collecting job information...\n")
 	job, err := j.Instance.GetJob(j.Context, jobName)
 	if err != nil {
 		return errors.New("❌ unable to find the last build job")
@@ -246,18 +246,18 @@ func (j *Jenkins) GetLastBuild(jobName string) error {
 	}
 
 	if len(build.Job.Raw.LastBuild.URL) > 0 {
-		fmt.Printf("✅ Last build Number: %d\n", build.Job.Raw.LastBuild.Number)
-		fmt.Printf("✅ Last build URL: %s\n", build.Job.Raw.LastBuild.URL)
-		fmt.Printf("✅ Parameters: %s\n", build.GetParameters())
+		zaplog.Sugar.Infof("✅ Last build Number: %d\n", build.Job.Raw.LastBuild.Number)
+		zaplog.Sugar.Infof("✅ Last build URL: %s\n", build.Job.Raw.LastBuild.URL)
+		zaplog.Sugar.Infof("✅ Parameters: %s\n", build.GetParameters())
 	} else {
-		fmt.Printf("No last build available for job: %s", jobName)
+		zaplog.Sugar.Infof("No last build available for job: %s", jobName)
 	}
 	return nil
 }
 
-//获取最后失败的构建
+// 获取最后失败的构建
 func (j *Jenkins) GetLastFailedBuild(jobName string) error {
-	fmt.Printf("⏳ Collecting job information...\n")
+	zaplog.Sugar.Infof("⏳ Collecting job information...\n")
 	jobObj, err := j.Instance.GetJob(j.Context, jobName)
 	if err != nil {
 		return errors.New("❌ unable to find the specific job")
@@ -267,18 +267,18 @@ func (j *Jenkins) GetLastFailedBuild(jobName string) error {
 		return errors.New("❌ unable to get the last failed build")
 	}
 	if len(build.GetUrl()) > 0 {
-		fmt.Printf("Last Failed build Number: %d\n", build.GetBuildNumber())
-		fmt.Printf("Last Failed build URL: %s\n", build.GetUrl())
-		fmt.Printf("Parameters: %s\n", build.GetParameters())
+		zaplog.Sugar.Infof("Last Failed build Number: %d\n", build.GetBuildNumber())
+		zaplog.Sugar.Infof("Last Failed build URL: %s\n", build.GetUrl())
+		zaplog.Sugar.Infof("Parameters: %s\n", build.GetParameters())
 	} else {
-		fmt.Printf("No last failed build available for job")
+		zaplog.Sugar.Infof("No last failed build available for job")
 	}
 	return nil
 }
 
-//获取最后成功的构建
+// 获取最后成功的构建
 func (j *Jenkins) GetLastSuccessfulBuild(jobName string) error {
-	fmt.Printf("⏳ Collecting job information...\n")
+	zaplog.Sugar.Infof("⏳ Collecting job information...\n")
 	jobObj, err := j.Instance.GetJob(j.Context, jobName)
 	if err != nil {
 		return errors.New("❌ unable to find the specific job")
@@ -288,18 +288,18 @@ func (j *Jenkins) GetLastSuccessfulBuild(jobName string) error {
 		return errors.New("❌ unable to get the last successful build")
 	}
 	if len(build.GetUrl()) > 0 {
-		fmt.Printf("✅ Last Successful build Number: %d\n", build.GetBuildNumber())
-		fmt.Printf("✅ Last Successful build URL: %s\n", build.GetUrl())
-		fmt.Printf("✅ Parameters: %s\n", build.GetParameters())
+		zaplog.Sugar.Infof("✅ Last Successful build Number: %d\n", build.GetBuildNumber())
+		zaplog.Sugar.Infof("✅ Last Successful build URL: %s\n", build.GetUrl())
+		zaplog.Sugar.Infof("✅ Parameters: %s\n", build.GetParameters())
 	} else {
-		fmt.Printf("No last successful build available for job")
+		zaplog.Sugar.Infof("No last successful build available for job")
 	}
 	return nil
 }
 
-//获取最后不稳定的构建
+// 获取最后不稳定的构建
 func (j *Jenkins) GetLastUnstableBuild(jobName string) error {
-	fmt.Printf("⏳ Collecting job information...\n")
+	zaplog.Sugar.Infof("⏳ Collecting job information...\n")
 	job, err := j.Instance.GetJob(j.Context, jobName)
 	if err != nil {
 		return errors.New("❌ unable to find the specific job")
@@ -310,16 +310,16 @@ func (j *Jenkins) GetLastUnstableBuild(jobName string) error {
 	}
 
 	if len(build.GetUrl()) > 0 {
-		fmt.Printf("Last unstable build Number: %d\n", build.GetBuildNumber())
-		fmt.Printf("Last unstable build URL: %s\n", build.GetUrl())
-		fmt.Printf("Parameters: %s\n", build.GetParameters())
+		zaplog.Sugar.Infof("Last unstable build Number: %d\n", build.GetBuildNumber())
+		zaplog.Sugar.Infof("Last unstable build URL: %s\n", build.GetUrl())
+		zaplog.Sugar.Infof("Parameters: %s\n", build.GetParameters())
 	} else {
-		fmt.Printf("No last unstable build available for job: %s", jobName)
+		zaplog.Sugar.Infof("No last unstable build available for job: %s", jobName)
 	}
 	return nil
 }
 
-//获取最后一个稳定的构建
+// 获取最后一个稳定的构建
 func (j *Jenkins) GetLastStableBuild(jobName string) error {
 	job, err := j.Instance.GetJob(j.Context, jobName)
 	if err != nil {
@@ -331,18 +331,18 @@ func (j *Jenkins) GetLastStableBuild(jobName string) error {
 	}
 
 	if len(build.GetUrl()) > 0 {
-		fmt.Printf("✅ Last stable build Number: %d\n", build.GetBuildNumber())
-		fmt.Printf("✅ Last stable build URL: %s\n", build.GetUrl())
-		fmt.Printf("✅ Parameters: %s\n", build.GetParameters())
+		zaplog.Sugar.Infof("✅ Last stable build Number: %d\n", build.GetBuildNumber())
+		zaplog.Sugar.Infof("✅ Last stable build URL: %s\n", build.GetUrl())
+		zaplog.Sugar.Infof("✅ Parameters: %s\n", build.GetParameters())
 	} else {
-		fmt.Printf("No last stable build available for job: %s", jobName)
+		zaplog.Sugar.Infof("No last stable build available for job: %s", jobName)
 	}
 	return nil
 }
 
-//获取所有构建id
+// 获取所有构建id
 func (j *Jenkins) GetAllBuildIds(jobName string) error {
-	fmt.Printf("⏳ Collecting job information...\n")
+	zaplog.Sugar.Infof("⏳ Collecting job information...\n")
 	job, err := j.Instance.GetJob(j.Context, jobName)
 	if err != nil {
 		return err
@@ -357,17 +357,17 @@ func (j *Jenkins) GetAllBuildIds(jobName string) error {
 			if err != nil {
 				return err
 			}
-			fmt.Printf("build Number: %d\n", build.Number)
-			fmt.Printf("build URL: %s\n", build.URL)
-			fmt.Printf("build resoult: %s\n", buildObj.GetResult())
+			zaplog.Sugar.Infof("build Number: %d\n", build.Number)
+			zaplog.Sugar.Infof("build URL: %s\n", build.URL)
+			zaplog.Sugar.Infof("build resoult: %s\n", buildObj.GetResult())
 		}
 	} else {
-		fmt.Printf("No last unstable build available for job: %s", jobName)
+		zaplog.Sugar.Infof("No last unstable build available for job: %s", jobName)
 	}
 	return nil
 }
 
-//显示所有节点实例
+// 显示所有节点实例
 func (j *Jenkins) ShowNodes(showStatus string) ([]string, error) {
 	var hosts []string
 
@@ -380,16 +380,16 @@ func (j *Jenkins) ShowNodes(showStatus string) ([]string, error) {
 		switch showStatus {
 		case "offline":
 			if node.Raw.Offline || node.Raw.TemporarilyOffline {
-				fmt.Printf("❌ %s - offline\n", node.GetName())
-				fmt.Printf("Reason: %s\n\n", node.Raw.OfflineCauseReason)
+				zaplog.Sugar.Infof("❌ %s - offline\n", node.GetName())
+				zaplog.Sugar.Infof("Reason: %s\n\n", node.Raw.OfflineCauseReason)
 			}
 			hosts = append(hosts, node.GetName())
 		case "online":
 			if !node.Raw.Offline {
-				fmt.Printf("✅ %s - online\n", node.GetName())
+				zaplog.Sugar.Infof("✅ %s - online\n", node.GetName())
 			}
 			if node.Raw.Idle {
-				fmt.Printf("😴 %s - idle\n", node.GetName())
+				zaplog.Sugar.Infof("😴 %s - idle\n", node.GetName())
 			}
 			hosts = append(hosts, node.GetName())
 		}
@@ -398,7 +398,7 @@ func (j *Jenkins) ShowNodes(showStatus string) ([]string, error) {
 	return hosts, nil
 }
 
-//发送邮件
+// 发送邮件
 func (j *Jenkins) SendMail(number int64, result, name string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", j.MailFrom)
@@ -420,7 +420,7 @@ func (j *Jenkins) SendMail(number int64, result, name string) error {
 	return err
 }
 
-//自定义发送邮件
+// 自定义发送邮件
 func (j *Jenkins) SendMailCustom() error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", j.MailFrom)
@@ -432,25 +432,30 @@ func (j *Jenkins) SendMailCustom() error {
 	if j.MailAttach != "" {
 		m.Attach(j.MailAttach)
 	}
-	fmt.Println("附件", j.MailAttach)
+	zaplog.Sugar.Infoln("附件", j.MailAttach)
 	d := gomail.NewDialer(j.MailSmpt, j.MailPort, j.MailUser, j.MailToken)
-	fmt.Println(d)
+	zaplog.Sugar.Infoln(d)
 
 	err := d.DialAndSend(m)
+	if err != nil {
+		zaplog.Sugar.Errorf("拨号失败")
+		return err
+	}
 
-	return err
+	return nil
 }
 
-//读取文件内容
+// 读取文件内容
 func (j *Jenkins) ReadFile(filepath string) []byte {
 	if _, err := os.Stat(filepath); err != nil {
-		fmt.Println("文件不存在或指定的不是文件")
+		zaplog.Sugar.Errorln("文件不存在或指定的不是文件")
 		panic(err)
 	}
 	content, err := ioutil.ReadFile(filepath)
 	if err != nil {
-		log.Fatal(err)
+		zaplog.Sugar.Errorf("读取文件失败:%v", err)
+		os.Exit(1)
 	}
-	fmt.Printf("File contents:%s", content)
+	zaplog.Sugar.Infof("File contents:%s", content)
 	return content
 }

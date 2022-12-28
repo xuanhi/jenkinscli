@@ -1,17 +1,16 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/xuanhi/jenkinscli/jenkins"
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 )
 
 // enableCmd represents the enable command
@@ -27,10 +26,10 @@ var enableJobCmd = &cobra.Command{
 		if len(args) < 1 {
 			return errors.New("❌ requires at least one argument")
 		}
-		fmt.Printf("⏳ Enabling job %s...\n", args[0])
+		zaplog.Sugar.Infof("⏳ Enabling job %s...\n", args[0])
 		job, err := jenkinsMod.Instance.GetJob(jenkinsMod.Context, args[0])
 		if err != nil {
-			fmt.Printf("unable to find the job: %s - err: %s \n", args[0], err)
+			zaplog.Sugar.Errorf("unable to find the job: %s - err: %s \n", args[0], err)
 			os.Exit(1)
 		}
 		mapv := jenkins.ArgstoMap(args)
@@ -54,7 +53,7 @@ var enableJobCmd = &cobra.Command{
 			time.Sleep(5000 * time.Millisecond)
 			build.Poll(jenkinsMod.Context)
 		}
-		fmt.Printf("build number %d with result: %v\n", build.GetBuildNumber(), build.GetResult())
+		zaplog.Sugar.Infof("build number %d with result: %v\n", build.GetBuildNumber(), build.GetResult())
 		return nil
 	},
 }

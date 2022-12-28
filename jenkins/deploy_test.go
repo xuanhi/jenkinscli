@@ -77,7 +77,9 @@ func TestUploadFileRegepTest(t *testing.T) {
 
 func TestExecbash(t *testing.T) {
 	zaplog.InitLogger()
-	sshC.Execbash("systemctl status nginx", "")
+	sshC := NewSshC("xuanhi", "xianhuaihai", "192.168.20.129", "22")
+
+	sshC.Execbash("date", "xianhuaihai")
 }
 
 func TestExecTask(t *testing.T) {

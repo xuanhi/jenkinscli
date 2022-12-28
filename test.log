@@ -1,9 +1,11 @@
-2022-12-27T17:03:39.727+0800	[33mWARN[0m	cobra@v1.3.0/command.go:886	❌ jenkins server unreachable: 
-2022-12-27T17:03:39.727+0800	[33mWARN[0m	cobra@v1.3.0/command.go:886	连接Jenkins出错,请检查配置文件，忽略程序继续执行: Get "/api/json": unsupported protocol scheme ""
-2022-12-27T17:03:39.878+0800	[34mINFO[0m	cmd/ssh.go:66	host [0;35m[192.168.20.129:22][0m  time [0;36m[150.821189ms][0m status [0;32m[SUCCESS][0m stdout:
+2022-12-28T14:59:11.357+0800	[33mWARN[0m	cobra@v1.3.0/command.go:886	❌ jenkins server unreachable: 
+2022-12-28T14:59:11.357+0800	[33mWARN[0m	cobra@v1.3.0/command.go:886	连接Jenkins出错,请检查配置文件，忽略程序继续执行: Get "/api/json": unsupported protocol scheme ""
+2022-12-28T14:59:11.584+0800	[34mINFO[0m	cmd/tmpl.go:97	kv: [image mongo]
+2022-12-28T14:59:11.584+0800	[34mINFO[0m	cmd/tmpl.go:97	kv: [number 3]
+2022-12-28T14:59:11.587+0800	[34mINFO[0m	cmd/tmpl.go:98	host: [0;35m[192.168.31.201:22][0m time [0;36m[3.578435ms][0m status [0;32m[/root/k8stest.yaml finished!][0m
 
- [0;33mTue Dec 27 09:03:39 AM UTC 2022
-[0m
+2022-12-28T14:59:11.630+0800	[34mINFO[0m	cmd/tmpl.go:97	kv: [image mongo]
+2022-12-28T14:59:11.630+0800	[34mINFO[0m	cmd/tmpl.go:97	kv: [number 3]
+2022-12-28T14:59:11.634+0800	[34mINFO[0m	cmd/tmpl.go:98	host: [0;35m[192.168.31.200:22][0m time [0;36m[3.867384ms][0m status [0;32m[/root/k8stest.yaml finished!][0m
 
-
-2022-12-27T17:03:39.878+0800	[34mINFO[0m	cmd/ssh.go:113	主机统计: SUCCESS: 1 	 ERROR: 0 	 遇错主机：[]
+2022-12-28T14:59:11.635+0800	[34mINFO[0m	cmd/tmpl.go:109	主机统计: SUCCESS: 2 	 ERROR: 0 	 遇错主机：[]

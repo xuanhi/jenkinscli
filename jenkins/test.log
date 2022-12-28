@@ -1,3 +1,6 @@
-2022-12-27T16:44:03.504+0800	[31mERROR[0m	jenkins/deploy.go:233	192.168.20.129:22:上传文件有错误之远程创建文件错误: file does not exist 远程路径: /xuanhi/test.sh
+2022-12-28T09:12:12.096+0800	[34mINFO[0m	jenkins/deploy_test.go:82	host [0;35m[192.168.20.129:22][0m  time [0;36m[167.80795ms][0m status [0;32m[SUCCESS][0m stdout:
 
-2022-12-27T16:44:03.505+0800	[31mERROR[0m	jenkins/deploy_test.go:90	脚本传输错误
+ [0;33m[sudo] password for xuanhi: Wed Dec 28 01:12:12 AM UTC 2022
+[0m
+
+

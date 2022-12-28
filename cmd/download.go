@@ -1,15 +1,14 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 
 	"github.com/spf13/cobra"
+	"github.com/xuanhi/jenkinscli/utils/zaplog"
 )
 
 // downloadCmd represents the download command
@@ -22,14 +21,14 @@ var artifactsCmd = &cobra.Command{
 	Short: "download artifacts",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 3 {
-			fmt.Println("❌ requires at three arguments [JOB_NAME BUILD_ID PATH_TO_SAVE_ARTIFACTS]")
+			zaplog.Sugar.Errorln("❌ requires at three arguments [JOB_NAME BUILD_ID PATH_TO_SAVE_ARTIFACTS]")
 			os.Exit(1)
 		}
 		buildID, _ := strconv.ParseInt(args[1], 10, 64)
-		fmt.Println("⏳ downloading artifacts...")
+		zaplog.Sugar.Infoln("⏳ downloading artifacts...")
 		err := jenkinsMod.DownloadArtifacts(args[0], buildID, args[2])
 		if err != nil {
-			fmt.Printf("cannot download artifacts: %s\n", err)
+			zaplog.Sugar.Errorf("cannot download artifacts: %s\n", err)
 			os.Exit(1)
 		}
 
