@@ -15,7 +15,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:     "jenkinscli",
 	Short:   "A client for jenkins",
-	Version: "v0.0.1",
+	Version: "v3.0.5",
 	Long:    `Client for jenkins, manage resources by the jenkis`,
 }
 
