@@ -12,6 +12,8 @@ jenkinscli 是一个简单的运维工具，大体上分为两个功能，远程
 
 **3.0.5更新：引入了zap日志框架，优化了日志输出并且在控制台输出时带有颜色同时日志也会输出到cmd.log文件，这个在管理主机时非常有用，远程执行bash命令时新增sudo的支持（参数-s或--sudo）**
 
+效果图：![1672279529730](image/README/1672279529730.png)
+
 **3.0.4更新：添加了远程执行脚本时为脚本输入位置参数。更新了对于ubuntu系统远程执行脚本时指定sudo密码(-s或--sudo)**
 
 **3.0.3更新：添加了tmpl功能**
@@ -175,7 +177,7 @@ MailAttach: /root.1.jpg
 
 效果图：
 
-![image-20220513140116132](C:\Users\EDZ\AppData\Roaming\Typora\typora-user-images\image-20220513140116132.png)
+![1672280202494](image/README/1672280202494.png)
 
 ## 3.配置sftp和ssh
 
