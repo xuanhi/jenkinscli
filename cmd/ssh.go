@@ -60,6 +60,8 @@ var sshBash = &cobra.Command{
 								zaplog.Sugar.Errorf("主机: %s,执行命令出错: %v", ssh.Host, err)
 								hosterr = append(hosterr, ssh.Host)
 								return
+								//runtime.Goexit()
+
 							}
 							hostsuccess = append(hostsuccess, ssh.Host)
 						} else {

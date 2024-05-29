@@ -11,7 +11,7 @@ import (
 	"github.com/xuanhi/jenkinscli/utils/zaplog"
 )
 
-var sshC = NewSshC("root", "sqkjp#ssw0rd", "192.168.31.201", "22")
+var sshC = NewSshC("root", "admin123.COM", "172.16.169.234", "22")
 
 var sshclient = sshC.SshClient()
 
@@ -80,6 +80,15 @@ func TestExecbash(t *testing.T) {
 	sshC := NewSshC("xuanhi", "xianhuaihai", "192.168.20.129", "22")
 
 	sshC.Execbash("date", "xianhuaihai")
+}
+func TestExecbashC(t *testing.T) {
+	zaplog.InitLogger()
+	sshC := NewSshC("root", "admin123.COM", "172.16.169.234", "22")
+
+	err := sshC.Execbash("ip a", "")
+	if err != nil {
+		fmt.Println("___****", err)
+	}
 }
 
 func TestExecTask(t *testing.T) {

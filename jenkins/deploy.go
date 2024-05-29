@@ -84,8 +84,15 @@ func (s *SshC) SshClient() *ssh.Client {
 	}
 	sshClient, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.Host, s.Port), sshConfig)
 	if err != nil {
-		zaplog.Sugar.Errorf("unable to connect: %v", err)
-		os.Exit(1)
+		//第一次连接失败进行重试一次
+		zaplog.Sugar.Errorf("unable to connect: %v, try again", err)
+		sshClient2, err2 := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.Host, s.Port), sshConfig)
+		if err2 != nil {
+			zaplog.Sugar.Errorf("unable to connect: %v", err)
+			os.Exit(1)
+		}
+		return sshClient2
+
 	}
 	return sshClient
 }
@@ -131,8 +138,15 @@ func (s *SshC) SshClientRsa() *ssh.Client {
 	}
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.Host, s.Port), config)
 	if err != nil {
-		zaplog.Sugar.Errorf("unable to connect: %v", err)
-		os.Exit(1)
+		//第一次连接失败进行重试一次
+		zaplog.Sugar.Errorf("unable to connect: %v,try again", err)
+		client2, err2 := ssh.Dial("tcp", fmt.Sprintf("%s:%s", s.Host, s.Port), config)
+		if err2 != nil {
+			zaplog.Sugar.Errorf("unable to connect: %v", err)
+			os.Exit(1)
+		}
+		return client2
+
 	}
 	return client
 }
